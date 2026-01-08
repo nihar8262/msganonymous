@@ -19,7 +19,7 @@ function Navbar() {
   };
 
   return (
-    <nav className="p-2 fixed w-full md:p-6 shadow-md bg-white/20 dark:bg-gray-900/20 backdrop-blur-md text-black dark:text-white z-50">
+    <nav className="p-2 fixed w-full md:p-3 shadow-md bg-white/20 dark:bg-gray-900/20 backdrop-blur-md text-black dark:text-white z-50">
       <div className="container mx-auto  flex flex-row justify-between items-center">
         <a href="#" className="text-xl  font-bold md:mb-0">
           True Feedback

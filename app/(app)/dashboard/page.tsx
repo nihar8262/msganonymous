@@ -70,56 +70,56 @@ const Dashboard = () => {
   const [editEventDescription, setEditEventDescription] = useState('');
   const [isCopied, setIsCopied] = useState(false);
   const [isFetchingSuggestion, setIsFetchingSuggestion] = useState(false);
-const [descriptionSuggestions, setDescriptionSuggestions] = useState<string[]>([]);
-const [showSuggestions, setShowSuggestions] = useState(false);
+  const [descriptionSuggestions, setDescriptionSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   const handleGetDescriptionSuggestions = async () => {
-  setIsFetchingSuggestion(true);
-  try {
-    const response = await axios.post('/api/suggest-description');
-    const suggestions = response.data;
-    
-    let parsedSuggestions: string[] = [];
-    if (typeof suggestions === 'string') {
-      parsedSuggestions = suggestions.split('||').map((s: string) => s.trim());
-    } else {
-      parsedSuggestions = (suggestions.message || suggestions).split('||').map((s: string) => s.trim());
+    setIsFetchingSuggestion(true);
+    try {
+      const response = await axios.post('/api/suggest-description');
+      const suggestions = response.data;
+
+      let parsedSuggestions: string[] = [];
+      if (typeof suggestions === 'string') {
+        parsedSuggestions = suggestions.split('||').map((s: string) => s.trim());
+      } else {
+        parsedSuggestions = (suggestions.message || suggestions).split('||').map((s: string) => s.trim());
+      }
+
+      setDescriptionSuggestions(parsedSuggestions);
+      setShowSuggestions(true);
+      toast.success('Suggestions loaded!');
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+      toast.error('Failed to load suggestions');
+    } finally {
+      setIsFetchingSuggestion(false);
     }
-    
-    setDescriptionSuggestions(parsedSuggestions);
-    setShowSuggestions(true);
-    toast.success('Suggestions loaded!');
-  } catch (error) {
-    console.error('Error fetching suggestions:', error);
-    toast.error('Failed to load suggestions');
-  } finally {
-    setIsFetchingSuggestion(false);
-  }
-};
+  };
 
-// Add this function to insert suggestion into description
-const handleInsertSuggestion = (suggestion: string) => {
-  const currentDescription = newEventDescription;
-  const newDescription = currentDescription 
-    ? `${currentDescription}\n• ${suggestion}` 
-    : `• ${suggestion}`;
-  setNewEventDescription(newDescription);
-  toast.success('Suggestion added to description');
-};
+  // Add this function to insert suggestion into description
+  const handleInsertSuggestion = (suggestion: string) => {
+    const currentDescription = newEventDescription;
+    const newDescription = currentDescription
+      ? `${currentDescription}\n• ${suggestion}`
+      : `• ${suggestion}`;
+    setNewEventDescription(newDescription);
+    toast.success('Suggestion added to description');
+  };
 
-// Add similar functions for edit mode
-const handleInsertSuggestionToEdit = (suggestion: string) => {
-  const currentDescription = editEventDescription;
-  const newDescription = currentDescription 
-    ? `${currentDescription}\n• ${suggestion}` 
-    : `• ${suggestion}`;
-  setEditEventDescription(newDescription);
-  toast.success('Suggestion added to description');
-};
+  // Add similar functions for edit mode
+  const handleInsertSuggestionToEdit = (suggestion: string) => {
+    const currentDescription = editEventDescription;
+    const newDescription = currentDescription
+      ? `${currentDescription}\n• ${suggestion}`
+      : `• ${suggestion}`;
+    setEditEventDescription(newDescription);
+    toast.success('Suggestion added to description');
+  };
 
   const handleDeleteMessage = (messageId: string) => {
     setMessages(messages.filter((msg) => msg?._id?.toString() !== messageId));
@@ -157,13 +157,13 @@ const handleInsertSuggestionToEdit = (suggestion: string) => {
         name: editEventName,
         description: editEventDescription
       });
-      
+
       if (response.data.success) {
         toast.success("Event updated successfully!");
         setEditEventId('');
         setEditEventName('');
         setEditEventDescription('');
-        
+
         // Refresh events list
         await fetchEvents();
       }
@@ -187,12 +187,12 @@ const handleInsertSuggestionToEdit = (suggestion: string) => {
       const response = await axios.delete<ApiResponse>(`/api/delete-event/${eventId}`);
       if (response.data.success) {
         toast.success("Event deleted successfully");
-        
+
         if (selectedEventId === eventId) {
           setSelectedEventId('');
           setMessages([]);
         }
-        
+
         await fetchEvents();
       } else {
         toast.error(response.data.message || "Failed to delete event");
@@ -210,7 +210,7 @@ const handleInsertSuggestionToEdit = (suggestion: string) => {
       const response = await axios.get('/api/create-event');
       const fetchedEvents = response.data.events || [];
       setEvents(fetchedEvents);
-      
+
       if (fetchedEvents.length > 0 && !selectedEventId) {
         setSelectedEventId(fetchedEvents[0]._id);
       }
@@ -232,11 +232,11 @@ const handleInsertSuggestionToEdit = (suggestion: string) => {
         name: newEventName,
         description: newEventDescription
       });
-      
+
       toast.success("Event created successfully!");
       setNewEventName('');
       setNewEventDescription('');
-      
+
       await fetchEvents();
       setSelectedEventId(response.data.event._id);
     } catch (error) {
@@ -262,7 +262,7 @@ const handleInsertSuggestionToEdit = (suggestion: string) => {
 
   const fetchMessages = useCallback(async (refresh: boolean = false, eventId?: string) => {
     if (!eventId) return;
-    
+
     setIsLoading(true);
     try {
       const response = await axios.get<ApiResponse>(`/api/create-event/${eventId}/messages`);
@@ -341,106 +341,106 @@ const handleInsertSuggestionToEdit = (suggestion: string) => {
 
         <div className="md:flex gap-5">
           {/* Create Event Card */}
-<Card className="md:flex-1 mb-6 md:mb-0">
-  <CardHeader>
-    <CardTitle className="flex items-center gap-2">
-      <Plus className="h-5 w-5" />
-      Create New Event
-    </CardTitle>
-    <CardDescription>
-      Create an event to receive anonymous messages for specific occasions
-    </CardDescription>
-  </CardHeader>
-  <CardContent>
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Input
-          type="text"
-          placeholder="Event Name (e.g., Birthday Party, Anonymous Feedback)"
-          value={newEventName}
-          onChange={(e) => setNewEventName(e.target.value)}
-          className="w-full"
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">Description (optional)</label>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleGetDescriptionSuggestions}
-            disabled={isFetchingSuggestion}
-            className="cursor-pointer text-xs"
-          >
-            {isFetchingSuggestion ? (
-              <>
-                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              <>
-                <Plus className="mr-1 h-3 w-3" />
-                Add Suggestions
-              </>
-            )}
-          </Button>
-        </div>
-        
-        <Textarea
-          placeholder="Add questions or prompts to guide message senders..."
-          value={newEventDescription}
-          onChange={(e) => setNewEventDescription(e.target.value)}
-          className="w-full resize-none"
-          rows={4}
-        />
-        
-        {/* Suggestion Pills */}
-        {showSuggestions && descriptionSuggestions.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Click to add to description:</p>
-            <div className="flex flex-wrap gap-2">
-              {descriptionSuggestions.map((suggestion, index) => (
+          <Card className="md:flex-1 mb-6 md:mb-0">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                Create New Event
+              </CardTitle>
+              <CardDescription>
+                Create an event to receive anonymous messages for specific occasions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Input
+                    type="text"
+                    placeholder="Event Name (e.g., Birthday Party, Anonymous Feedback)"
+                    value={newEventName}
+                    onChange={(e) => setNewEventName(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Description (optional)</label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleGetDescriptionSuggestions}
+                      disabled={isFetchingSuggestion}
+                      className="cursor-pointer text-xs"
+                    >
+                      {isFetchingSuggestion ? (
+                        <>
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="mr-1 h-3 w-3" />
+                          Add Suggestions
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  <Textarea
+                    placeholder="Add questions or prompts to guide message senders..."
+                    value={newEventDescription}
+                    onChange={(e) => setNewEventDescription(e.target.value)}
+                    className="w-full resize-none"
+                    rows={4}
+                  />
+
+                  {/* Suggestion Pills */}
+                  {showSuggestions && descriptionSuggestions.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Click to add to description:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {descriptionSuggestions.map((suggestion, index) => (
+                          <Button
+                            key={index}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleInsertSuggestion(suggestion)}
+                            className="cursor-pointer text-xs h-auto py-1 px-2 whitespace-normal text-left"
+                          >
+                            {suggestion}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <Button
-                  key={index}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleInsertSuggestion(suggestion)}
-                  className="cursor-pointer text-xs h-auto py-1 px-2 whitespace-normal text-left"
+                  onClick={createEvent}
+                  disabled={isCreatingEvent || !newEventName.trim()}
+                  className="w-full md:w-auto cursor-pointer"
                 >
-                  {suggestion}
+                  {isCreatingEvent ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create Event
+                    </>
+                  )}
                 </Button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-      
-      <Button
-        onClick={createEvent}
-        disabled={isCreatingEvent || !newEventName.trim()}
-        className="w-full md:w-auto cursor-pointer"
-      >
-        {isCreatingEvent ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Creating...
-          </>
-        ) : (
-          <>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Event
-          </>
-        )}
-      </Button>
-    </div>
-  </CardContent>
-</Card>
+              </div>
+            </CardContent>
+          </Card>
 
           {events.length > 0 && (
-            <Card className="md:flex-1">
+            <Card className=" md:flex-1">
               <CardHeader>
                 <CardTitle>Event Settings</CardTitle>
                 <CardDescription>
@@ -450,7 +450,7 @@ const handleInsertSuggestionToEdit = (suggestion: string) => {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Select Event</label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row  gap-2">
                     <Select value={selectedEventId} onValueChange={setSelectedEventId}>
                       <SelectTrigger className="flex-1">
                         <SelectValue placeholder="Choose an event" />
@@ -462,7 +462,7 @@ const handleInsertSuggestionToEdit = (suggestion: string) => {
                               <span className="font-medium">{event.name}</span>
                               {event.description && (
                                 <span className="text-xs text-muted-foreground">
-                                  {event.description.length > 20 ? event.description.substring(0, 30) + '...' : event.description}
+                                  {event.description.length > 20 ? event.description.substring(0, 20) + '...' : event.description}
                                 </span>
                               )}
                             </div>
@@ -471,6 +471,7 @@ const handleInsertSuggestionToEdit = (suggestion: string) => {
                       </SelectContent>
                     </Select>
 
+                    <div className="flex gap-2">
                     {/* Edit Event Dialog */}
                     {selectedEventId && (
                       <>
@@ -488,103 +489,103 @@ const handleInsertSuggestionToEdit = (suggestion: string) => {
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="sm:max-w-[500px]">
-  <DialogHeader>
-    <DialogTitle>Edit Event</DialogTitle>
-    <DialogDescription>
-      Update the event name and description below
-    </DialogDescription>
-  </DialogHeader>
-  <div className="space-y-4 py-4">
-    <div className="space-y-2">
-      <label className="text-sm font-medium">Event Name</label>
-      <Input
-        type="text"
-        placeholder="Event Name"
-        value={editEventName}
-        onChange={(e) => setEditEventName(e.target.value)}
-        className="w-full"
-      />
-    </div>
-    
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <label className="text-sm font-medium">Description</label>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={handleGetDescriptionSuggestions}
-          disabled={isFetchingSuggestion}
-          className="cursor-pointer text-xs"
-        >
-          {isFetchingSuggestion ? (
-            <>
-              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-              Loading...
-            </>
-          ) : (
-            <>
-              <Plus className="mr-1 h-3 w-3" />
-              Add Suggestions
-            </>
-          )}
-        </Button>
-      </div>
-      
-      <Textarea
-        placeholder="Description (optional)"
-        value={editEventDescription}
-        onChange={(e) => setEditEventDescription(e.target.value)}
-        className="w-full resize-none"
-        rows={4}
-      />
-      
-      {/* Suggestion Pills for Edit */}
-      {showSuggestions && descriptionSuggestions.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">Click to add to description:</p>
-          <div className="flex flex-wrap gap-2">
-            {descriptionSuggestions.map((suggestion, index) => (
-              <Button
-                key={index}
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleInsertSuggestionToEdit(suggestion)}
-                className="cursor-pointer text-xs h-auto py-1 px-2 whitespace-normal text-left"
-              >
-                {suggestion}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
-  <DialogFooter>
-    <Button
-      variant="outline"
-      onClick={handleCancelEdit}
-      className="cursor-pointer"
-    >
-      Cancel
-    </Button>
-    <Button
-      onClick={handleUpdateEvent}
-      disabled={isEditingEvent || !editEventName.trim()}
-      className="cursor-pointer"
-    >
-      {isEditingEvent ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Updating...
-        </>
-      ) : (
-        'Update Event'
-      )}
-    </Button>
-  </DialogFooter>
-</DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Edit Event</DialogTitle>
+                              <DialogDescription>
+                                Update the event name and description below
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">Event Name</label>
+                                <Input
+                                  type="text"
+                                  placeholder="Event Name"
+                                  value={editEventName}
+                                  onChange={(e) => setEditEventName(e.target.value)}
+                                  className="w-full"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <label className="text-sm font-medium">Description</label>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleGetDescriptionSuggestions}
+                                    disabled={isFetchingSuggestion}
+                                    className="cursor-pointer text-xs"
+                                  >
+                                    {isFetchingSuggestion ? (
+                                      <>
+                                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                        Loading...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Plus className="mr-1 h-3 w-3" />
+                                        Add Suggestions
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
+
+                                <Textarea
+                                  placeholder="Description (optional)"
+                                  value={editEventDescription}
+                                  onChange={(e) => setEditEventDescription(e.target.value)}
+                                  className="w-full resize-none"
+                                  rows={4}
+                                />
+
+                                {/* Suggestion Pills for Edit */}
+                                {showSuggestions && descriptionSuggestions.length > 0 && (
+                                  <div className="space-y-2">
+                                    <p className="text-xs text-muted-foreground">Click to add to description:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {descriptionSuggestions.map((suggestion, index) => (
+                                        <Button
+                                          key={index}
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => handleInsertSuggestionToEdit(suggestion)}
+                                          className="cursor-pointer text-xs h-auto py-1 px-2 whitespace-normal text-left"
+                                        >
+                                          {suggestion}
+                                        </Button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button
+                                variant="outline"
+                                onClick={handleCancelEdit}
+                                className="cursor-pointer"
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                onClick={handleUpdateEvent}
+                                disabled={isEditingEvent || !editEventName.trim()}
+                                className="cursor-pointer"
+                              >
+                                {isEditingEvent ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Updating...
+                                  </>
+                                ) : (
+                                  'Update Event'
+                                )}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
                         </Dialog>
 
                         {/* Delete Event Button */}
@@ -623,6 +624,8 @@ const handleInsertSuggestionToEdit = (suggestion: string) => {
                         </AlertDialog>
                       </>
                     )}
+                    </div>
+
                   </div>
                 </div>
 
