@@ -59,10 +59,6 @@ export default function Home() {
             </p>
 
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button onClick={handleGoogleClick} disabled={callGoogle} size="lg" className="cursor-pointer text-lg px-8 py-6 bg-blue-600 hover:bg-blue-700">
-                  Call AI Free
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
               <Link href="/sign-up">
                 <Button size="lg" className="cursor-pointer text-lg px-8 py-6 bg-blue-600 hover:bg-blue-700">
                   Get Started Free
