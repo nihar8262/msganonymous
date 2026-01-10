@@ -55,6 +55,11 @@ const EventSchema: Schema<Event> = new Schema({
 // Compound index for user + slug uniqueness
 EventSchema.index({ userId: 1, slug: 1 }, { unique: true });
 
+export interface AIUsage {
+  date: Date;
+  count: number;
+}
+
 export interface User extends Document {
   username: string;
   email: string;
@@ -67,6 +72,7 @@ export interface User extends Document {
   providerId?: string; // OAuth provider's user ID
   image?: string; // Profile image from OAuth
   events: mongoose.Types.ObjectId[];
+  aiUsage: AIUsage[]; 
 }
 
 const UserSchema: Schema<User> = new Schema({
@@ -105,6 +111,18 @@ const UserSchema: Schema<User> = new Schema({
     type: Schema.Types.ObjectId,
     ref: "Event",
   }],
+  aiUsage: [
+    {
+      date: {
+        type: Date,
+        required: true,
+      },
+      count: {
+        type: Number,
+        default: 0,
+      },
+    },
+  ],
 });
 
 export const userModel =

@@ -13,6 +13,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useEffect, useState } from "react"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import {
+  TooltipProvider,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { getFingerprint } from '@/lib/fingerprint';
 import Link from "next/link"
 
 const specialChar = '||';
@@ -36,10 +43,14 @@ const UsernamePage = () => {
   const params = useParams<{ username: string; eventSlug?: string }>();
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [aiIsGenerating, setAIIsGenerating] = useState(false);
   const [suggestedMessages, setSuggestedMessages] = useState<string[]>(parseStringMessages(initialMessageString));
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoadingEvent, setIsLoadingEvent] = useState(true);
   const [userExists, setUserExists] = useState(true);
+  const [aiRemaining, setAIRemaining] = useState<number>(5);
+  const [fingerprint, setFingerprint] = useState('');
+  const [isCheckingLimit, setIsCheckingLimit] = useState(true);
 
   const form = useForm<z.infer<typeof messageSchema>>({
     resolver: zodResolver(messageSchema),
@@ -65,7 +76,7 @@ const UsernamePage = () => {
 
       try {
         const response = await axios.get(`/api/create-event/public/${params.username}/${params.eventSlug}`);
-        
+
         if (response.data.success) {
           setEvent(response.data.event);
           setUserExists(true);
@@ -86,26 +97,94 @@ const UsernamePage = () => {
     fetchEventDetails();
   }, [params.username, params.eventSlug]);
 
-  const handleSuggestMessages = async () => {
-    setIsGenerating(true);
+  useEffect(() => {
+    const initFingerprint = async () => {
+      try {
+        const fp = await getFingerprint();
+        setFingerprint(fp);
+        await checkAILimit(fp);
+      } catch (error) {
+        console.error('Error initializing fingerprint:', error);
+        setIsCheckingLimit(false);
+      }
+    };
+    initFingerprint();
+  }, []);
+
+  const checkAILimit = async (fp?: string) => {
+    setIsCheckingLimit(true);
     try {
-      const response = await axios.post('/api/suggest-messages');
-      const suggestions = response.data;
-      
+      const response = await axios.post('/api/check-ai-limit', {
+        fingerprint: fp || fingerprint,
+      });
+      console.log('AI Limit response:', response.data); // Debug log
+      setAIRemaining(response.data.remaining ?? 5); // Use nullish coalescing
+    } catch (error) {
+      console.error('Error checking AI limit:', error);
+      setAIRemaining(5); // Fallback to 5 on error
+    } finally {
+      setIsCheckingLimit(false);
+    }
+  };
+
+  const handleSuggestMessages = async (useAI: boolean = false) => {
+    console.log('Before setState - useAI:', useAI, 'isGenerating:', isGenerating, 'aiIsGenerating:', aiIsGenerating);
+
+    if (useAI) {
+      setAIIsGenerating(true);
+    } else {
+      setIsGenerating(true);
+    }
+
+    try {
+      const response = await axios.post('/api/ai-message', {
+        type: 'feedback',
+        useAI: useAI,
+        eventName: event?.name || '',
+        fingerprint: fingerprint
+      });
+
+      const suggestions = response.data.message;
+
+      if (response.data.remaining !== undefined && response.data.remaining !== null) {
+        console.log('Updating aiRemaining to:', response.data.remaining); // Debug log
+        setAIRemaining(response.data.remaining);
+      }
+
+      console.log('Suggestions received:', suggestions);
+
       if (typeof suggestions === 'string') {
         setSuggestedMessages(parseStringMessages(suggestions));
-      } else {
-        setSuggestedMessages(parseStringMessages(suggestions.message || suggestions));
       }
-      
-      toast.success('Feedback suggestions generated!');
+
+      if (response.data.rateLimited) {
+        toast.info('Daily AI limit reached. Using curated suggestions.', {
+          description: 'Limit resets tomorrow',
+        });
+      } else if (response.data.isAI) {
+        toast.success(`AI suggestions generated! ${response.data.remaining} left today`);
+      } else {
+        toast.success('Curated suggestions loaded!');
+      }
     } catch (error) {
       console.error('Error generating suggestions:', error);
       toast.error('Failed to generate suggestions. Please try again.');
     } finally {
-      setIsGenerating(false);
+      console.log('In finally - useAI:', useAI);
+      if (useAI) {
+        setAIIsGenerating(false);
+        console.log('Set aiIsGenerating to false');
+      } else {
+        setIsGenerating(false);
+        console.log('Set isGenerating to false');
+      }
     }
   };
+
+  // Add debug logging to see state changes
+  useEffect(() => {
+    console.log('State update - isGenerating:', isGenerating, 'aiIsGenerating:', aiIsGenerating, 'aiRemaining:', aiRemaining, 'type:', typeof aiRemaining);
+  }, [isGenerating, aiIsGenerating, aiRemaining]);
 
   const handleMessageClick = (message: string) => {
     form.setValue('content', message);
@@ -163,6 +242,7 @@ const UsernamePage = () => {
   }
 
   return (
+    <TooltipProvider>
     <div className="flex justify-center items-center min-h-screen p-4">
       <div className="w-full max-w-5xl space-y-6">
         {/* Header */}
@@ -233,14 +313,13 @@ const UsernamePage = () => {
           {/* Suggested Messages */}
           <Card className="w-full">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Suggested Messages</h2>
+              <div className="flex gap-2">
                 <Button
                   type="button"
-                  onClick={handleSuggestMessages}
+                  onClick={() => handleSuggestMessages(false)}
                   disabled={isGenerating}
                   variant="outline"
-                  className="cursor-pointer"
+                  className="cursor-pointer flex-1"
                 >
                   {isGenerating ? (
                     <>
@@ -248,9 +327,47 @@ const UsernamePage = () => {
                       Generating...
                     </>
                   ) : (
-                    'Suggest Messages'
+                    'Quick Suggestions'
                   )}
                 </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-block">
+                    <Button
+                      type="button"
+                      onClick={() => handleSuggestMessages(true)}
+                      disabled={aiIsGenerating || (aiRemaining !== null && aiRemaining <= 0) || isCheckingLimit}
+                      variant="default"
+                      className="cursor-pointer flex-1"
+                    >
+                      {aiIsGenerating ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : isCheckingLimit ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Checking...
+                        </>
+                      ) : (
+                        `✨ AI Suggestions ${aiRemaining !== null ? `(${aiRemaining})` : ''}`
+                      )}
+                    </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {aiRemaining !== null
+                        ? `${aiRemaining} AI suggestions left for today`
+                        : 'Checking AI limit...'}
+                    </p>
+                    {aiRemaining === 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">Resets tomorrow</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                 Click on any message below to use it
@@ -289,6 +406,7 @@ const UsernamePage = () => {
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 };
 

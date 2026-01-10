@@ -13,8 +13,27 @@ import {
 } from '@/components/ui/carousel';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useState } from 'react';
 
 export default function Home() {
+  const [callGoogle, setCallGoogle] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const handleGoogleClick = async () =>{
+    setCallGoogle(true);
+    setMessage('Calling Google API...');
+    try{
+      const response = await fetch('/api/ai-message');
+      const data = await response.json();
+      setMessage(`Google API Response: ${JSON.stringify(data)}`);
+      console.log('Google API Response:', data);
+    }catch(error){
+      setMessage(`Error calling Google API: ${error}`);
+    }finally{
+      setCallGoogle(false);
+    }
+    
+  }
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -40,6 +59,10 @@ export default function Home() {
             </p>
 
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Button onClick={handleGoogleClick} disabled={callGoogle} size="lg" className="cursor-pointer text-lg px-8 py-6 bg-blue-600 hover:bg-blue-700">
+                  Call AI Free
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
               <Link href="/sign-up">
                 <Button size="lg" className="cursor-pointer text-lg px-8 py-6 bg-blue-600 hover:bg-blue-700">
                   Get Started Free
