@@ -20,7 +20,7 @@ export default function Home() {
       {/* Hero Section */}
       <main className="flex-1">
         {/* Hero */}
-        <section className="relative py-20 px-4 md:px-24 text-center  overflow-hidden">
+        <section className="relative py-20 px-4 md:px-24 text-center dark:bg-neutral-900 overflow-hidden">
           <div className="max-w-5xl mx-auto relative z-10">
             <div className="inline-block mb-4 px-4 py-2 bg-blue-100 dark:bg-blue-900 rounded-full">
               <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
