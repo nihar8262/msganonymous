@@ -474,7 +474,7 @@ const Dashboard = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col sm:flex-row gap-2 items-center justify-between">
                       <label className="text-sm font-medium">Description (optional)</label>
                       <div className="flex  gap-2">
                         <Button
@@ -653,7 +653,7 @@ const Dashboard = () => {
                                   </div>
 
                                   <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex flex-col sm:flex-row gap-2 items-center justify-between">
                                       <label className="text-sm font-medium">Description</label>
                                       <div className="flex gap-2">
                                         <Button
