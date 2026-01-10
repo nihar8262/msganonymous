@@ -52,7 +52,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const Dashboard = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -442,486 +442,500 @@ const Dashboard = () => {
 
   return (
     <TooltipProvider>
-    <div className="min-h-screen p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6 pt-10">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {username}!</p>
-        </div>
+      <div className="min-h-screen p-4 md:p-8">
+        <div className="max-w-7xl mx-auto space-y-6 pt-10">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground">Welcome back, {username}!</p>
+          </div>
 
-        <div className="md:flex gap-5">
-          {/* Create Event Card */}
-          <Card className="md:flex-1 mb-6 md:mb-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Create New Event
-              </CardTitle>
-              <CardDescription>
-                Create an event to receive anonymous messages for specific occasions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Input
-                    type="text"
-                    placeholder="Event Name (e.g., Birthday Party, Anonymous Feedback)"
-                    value={newEventName}
-                    onChange={(e) => setNewEventName(e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">Description (optional)</label>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleGetDescriptionSuggestions(false)}
-                        disabled={isFetchingSuggestion}
-                        className="cursor-pointer text-xs flex-1"
-                      >
-                        {isFetchingSuggestion ? (
-                          <>
-                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                            Loading...
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="mr-1 h-3 w-3" />
-                            Quick Questions
-                          </>
-                        )}
-                      </Button>
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-block">
-                          <Button
-                            type="button"
-                            onClick={() => handleGetDescriptionSuggestions(true)}
-                            disabled={aiIsGenerating || isCheckingLimit || (aiRemaining !== null && aiRemaining <= 0)}
-                            variant="default"
-                            className="cursor-pointer flex-1"
-                          >
-                            {aiIsGenerating ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Generating...
-                              </>
-                            ) : (
-                              `✨ AI Suggestions ${aiRemaining !== null ? `(${aiRemaining})` : ''}`
-                            )}
-                          </Button>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            {aiRemaining !== null
-                              ? `${aiRemaining} AI suggestions left for today`
-                              : 'Checking AI limit...'}
-                          </p>
-                          {aiRemaining === 0 && (
-                            <p className="text-xs text-muted-foreground mt-1">Resets tomorrow</p>
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </div>
-
-                  <Textarea
-                    placeholder="Add questions or prompts to guide message senders..."
-                    value={newEventDescription}
-                    onChange={(e) => setNewEventDescription(e.target.value)}
-                    className="w-full resize-none"
-                    rows={4}
-                  />
-
-                  {/* Suggestion Pills */}
-                  {showSuggestions && descriptionSuggestions.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">Click to add to description:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {descriptionSuggestions.map((suggestion, index) => (
-                          <Button
-                            key={index}
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleInsertSuggestion(suggestion)}
-                            className="cursor-pointer text-xs h-auto py-1 px-2 whitespace-normal text-left"
-                          >
-                            {suggestion}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <Button
-                  onClick={createEvent}
-                  disabled={isCreatingEvent || !newEventName.trim()}
-                  className="w-full md:w-auto cursor-pointer"
-                >
-                  {isCreatingEvent ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create Event
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {events.length > 0 && (
-            <Card className=" md:flex-1">
+          <div className="lg:flex gap-5">
+            {/* Create Event Card */}
+            <Card className="md:flex-1 mb-6 lg:mb-0">
               <CardHeader>
-                <CardTitle>Event Settings</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="h-5 w-5" />
+                  Create New Event
+                </CardTitle>
                 <CardDescription>
-                  Select an event to view its messages and get shareable link
+                  Create an event to receive anonymous messages for specific occasions
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Select Event</label>
-                  <div className="flex flex-col sm:flex-row  gap-2">
-                    <Select value={selectedEventId} onValueChange={setSelectedEventId}>
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Choose an event" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {events.map((event) => (
-                          <SelectItem key={event._id.toString()} value={event._id.toString()}>
-                            <div className="flex gap-3 items-center">
-                              <span className="font-medium">{event.name}</span>
-                              {event.description && (
-                                <span className="text-xs text-muted-foreground">
-                                  {event.description.length > 20 ? event.description.substring(0, 20) + '...' : event.description}
-                                </span>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Input
+                      type="text"
+                      placeholder="Event Name (e.g., Birthday Party, Anonymous Feedback)"
+                      value={newEventName}
+                      onChange={(e) => setNewEventName(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
 
-                    <div className="flex gap-2">
-                      {/* Edit Event Dialog */}
-                      {selectedEventId && (
-                        <>
-                          <Dialog open={editEventId === selectedEventId} onOpenChange={(open) => {
-                            if (!open) handleCancelEdit();
-                          }}>
-                            <DialogTrigger asChild>
+                  <div className="space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                      <label className="text-sm font-medium">Description (optional)</label>
+                      <div className="flex  gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleGetDescriptionSuggestions(false)}
+                          disabled={isFetchingSuggestion}
+                          className="cursor-pointer text-xs flex-1"
+                        >
+                          {isFetchingSuggestion ? (
+                            <>
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="mr-1 h-3 w-3" />
+                              Quick Questions
+                            </>
+                          )}
+                        </Button>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-block">
                               <Button
-                                variant="outline"
-                                size="icon"
-                                className="cursor-pointer shrink-0"
-                                onClick={() => handleEditEvent(selectedEventId)}
+                                type="button"
+                                onClick={() => handleGetDescriptionSuggestions(true)}
+                                disabled={aiIsGenerating || isCheckingLimit || (aiRemaining !== null && aiRemaining <= 0)}
+                                variant="default"
+                                className="cursor-pointer flex-1"
                               >
-                                <Edit2Icon className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-[500px]">
-                              <DialogHeader>
-                                <DialogTitle>Edit Event</DialogTitle>
-                                <DialogDescription>
-                                  Update the event name and description below
-                                </DialogDescription>
-                              </DialogHeader>
-                              <div className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                  <label className="text-sm font-medium">Event Name</label>
-                                  <Input
-                                    type="text"
-                                    placeholder="Event Name"
-                                    value={editEventName}
-                                    onChange={(e) => setEditEventName(e.target.value)}
-                                    className="w-full"
-                                  />
-                                </div>
-
-                                <div className="space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <label className="text-sm font-medium">Description</label>
-                                    <div className="flex gap-2">
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleGetDescriptionSuggestionsForEdit(false)}
-                                        disabled={isFetchingSuggestion}
-                                        className="cursor-pointer text-xs flex-1"
-                                      >
-                                        {isFetchingSuggestion ? (
-                                          <>
-                                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                            Loading...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Plus className="mr-1 h-3 w-3" />
-                                            Quick Questions
-                                          </>
-                                        )}
-                                      </Button>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <span className="inline-block">
-                                          <Button
-                                            type="button"
-                                            onClick={() => handleGetDescriptionSuggestionsForEdit(true)}
-                                            disabled={aiIsGenerating || (aiRemaining !== null && aiRemaining <= 0) || isCheckingLimit}
-                                            variant="default"
-                                            className="cursor-pointer flex-1"
-                                          >
-                                            {aiIsGenerating ? (
-                                              <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Generating...
-                                              </>
-                                            ) : (
-                                              `✨ AI Suggestions ${aiRemaining !== null ? `(${aiRemaining})` : ''}`
-                                            )}
-                                          </Button>
-                                          </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>
-                                            {aiRemaining !== null
-                                              ? `${aiRemaining} AI suggestions left for today`
-                                              : 'Checking AI limit...'}
-                                          </p>
-                                          {aiRemaining === 0 && (
-                                            <p className="text-xs text-muted-foreground mt-1">Resets tomorrow</p>
-                                          )}
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </div>
-                                  </div>
-
-                                  <Textarea
-                                    placeholder="Description (optional)"
-                                    value={editEventDescription}
-                                    onChange={(e) => setEditEventDescription(e.target.value)}
-                                    className="w-full resize-none"
-                                    rows={4}
-                                  />
-
-                                  {/* Suggestion Pills for Edit */}
-                                  {showSuggestions && descriptionSuggestions.length > 0 && (
-                                    <div className="space-y-2">
-                                      <p className="text-xs text-muted-foreground">Click to add to description:</p>
-                                      <div className="flex flex-wrap gap-2">
-                                        {descriptionSuggestions.map((suggestion, index) => (
-                                          <Button
-                                            key={index}
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleInsertSuggestionToEdit(suggestion)}
-                                            className="cursor-pointer text-xs h-auto py-1 px-2 whitespace-normal text-left"
-                                          >
-                                            {suggestion}
-                                          </Button>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <DialogFooter>
-                                <Button
-                                  variant="outline"
-                                  onClick={handleCancelEdit}
-                                  className="cursor-pointer"
-                                >
-                                  Cancel
-                                </Button>
-                                <Button
-                                  onClick={handleUpdateEvent}
-                                  disabled={isEditingEvent || !editEventName.trim()}
-                                  className="cursor-pointer"
-                                >
-                                  {isEditingEvent ? (
-                                    <>
-                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                      Updating...
-                                    </>
-                                  ) : (
-                                    'Update Event'
-                                  )}
-                                </Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
-
-                          {/* Delete Event Button */}
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="destructive"
-                                size="icon"
-                                className="cursor-pointer shrink-0"
-                                disabled={isDeletingEvent}
-                              >
-                                {isDeletingEvent ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                {aiIsGenerating ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Generating...
+                                  </>
                                 ) : (
-                                  <Trash2 className="h-4 w-4" />
+                                  `✨ AI Suggestions ${aiRemaining !== null ? `(${aiRemaining})` : ''}`
                                 )}
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Event?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete "{selectedEvent?.name}"? This will permanently delete the event and all its messages. This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteEventConfirm(selectedEventId)}
-                                  className="bg-destructive text-white hover:bg-destructive/90 cursor-pointer"
-                                >
-                                  Delete Event
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </>
-                      )}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              {aiRemaining !== null
+                                ? `${aiRemaining} AI suggestions left for today`
+                                : 'Checking AI limit...'}
+                            </p>
+                            {aiRemaining === 0 && (
+                              <p className="text-xs text-muted-foreground mt-1">Resets tomorrow</p>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
                     </div>
 
+                    <Textarea
+                      placeholder="Add questions or prompts to guide message senders..."
+                      value={newEventDescription}
+                      onChange={(e) => setNewEventDescription(e.target.value)}
+                      className="w-full resize-none"
+                      rows={4}
+                    />
+
+                    {/* Suggestion Pills */}
+                    {showSuggestions && descriptionSuggestions.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">Click to add to description:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {descriptionSuggestions.map((suggestion, index) => (
+                            <Button
+                              key={index}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleInsertSuggestion(suggestion)}
+                              className="cursor-pointer text-xs h-auto py-1 px-2 whitespace-normal text-left"
+                            >
+                              {suggestion}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
+
+                  <Button
+                    onClick={createEvent}
+                    disabled={isCreatingEvent || !newEventName.trim()}
+                    className="w-full md:w-auto cursor-pointer"
+                  >
+                    {isCreatingEvent ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create Event
+                      </>
+                    )}
+                  </Button>
                 </div>
+              </CardContent>
+            </Card>
 
-                {selectedEventId && (
+            {events.length > 0 && (
+              <Card className=" md:flex-1">
+                <CardHeader>
+                  <CardTitle>Event Settings</CardTitle>
+                  <CardDescription>
+                    Select an event to view its messages and get shareable link
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Shareable Event Link</label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="text"
-                        value={isMounted ? profileUrl : ''}
-                        disabled
-                        className="flex-1"
-                        suppressHydrationWarning
-                      />
-                      <Button
-                        onClick={copyToClipboard}
-                        variant="outline"
-                        className="cursor-pointer"
-                      >
-                        {isCopied ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
+                    <label className="text-sm font-medium">Select Event</label>
+                    <div className="flex flex-col sm:flex-row  gap-2">
+                      <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Choose an event" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {events.map((event) => (
+                            <SelectItem key={event._id.toString()} value={event._id.toString()}>
+                              <div className="flex gap-3 items-center">
+                                <span className="font-medium">{event.name}</span>
+                                {event.description && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {event.description.length > 20 ? event.description.substring(0, 20) + '...' : event.description}
+                                  </span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <div className="flex gap-2">
+                        {/* Edit Event Dialog */}
+                        {selectedEventId && (
+                          <>
+                            <Dialog open={editEventId === selectedEventId} onOpenChange={(open) => {
+                              if (!open) handleCancelEdit();
+                            }}>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="cursor-pointer shrink-0"
+                                  onClick={() => handleEditEvent(selectedEventId)}
+                                >
+                                  <Edit2Icon className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-[500px]">
+                                <DialogHeader>
+                                  <DialogTitle>Edit Event</DialogTitle>
+                                  <DialogDescription>
+                                    Update the event name and description below
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                  <div className="space-y-2">
+                                    <label className="text-sm font-medium">Event Name</label>
+                                    <Input
+                                      type="text"
+                                      placeholder="Event Name"
+                                      value={editEventName}
+                                      onChange={(e) => setEditEventName(e.target.value)}
+                                      className="w-full"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <label className="text-sm font-medium">Description</label>
+                                      <div className="flex gap-2">
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleGetDescriptionSuggestionsForEdit(false)}
+                                          disabled={isFetchingSuggestion}
+                                          className="cursor-pointer text-xs flex-1"
+                                        >
+                                          {isFetchingSuggestion ? (
+                                            <>
+                                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                              Loading...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Plus className="mr-1 h-3 w-3" />
+                                              Quick Questions
+                                            </>
+                                          )}
+                                        </Button>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span className="inline-block">
+                                              <Button
+                                                type="button"
+                                                onClick={() => handleGetDescriptionSuggestionsForEdit(true)}
+                                                disabled={aiIsGenerating || (aiRemaining !== null && aiRemaining <= 0) || isCheckingLimit}
+                                                variant="default"
+                                                className="cursor-pointer flex-1"
+                                              >
+                                                {aiIsGenerating ? (
+                                                  <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Generating...
+                                                  </>
+                                                ) : (
+                                                  `✨ AI Suggestions ${aiRemaining !== null ? `(${aiRemaining})` : ''}`
+                                                )}
+                                              </Button>
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>
+                                              {aiRemaining !== null
+                                                ? `${aiRemaining} AI suggestions left for today`
+                                                : 'Checking AI limit...'}
+                                            </p>
+                                            {aiRemaining === 0 && (
+                                              <p className="text-xs text-muted-foreground mt-1">Resets tomorrow</p>
+                                            )}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </div>
+                                    </div>
+
+                                    <Textarea
+                                      placeholder="Description (optional)"
+                                      value={editEventDescription}
+                                      onChange={(e) => setEditEventDescription(e.target.value)}
+                                      className="w-full resize-none"
+                                      rows={4}
+                                    />
+
+                                    {/* Suggestion Pills for Edit */}
+                                    {showSuggestions && descriptionSuggestions.length > 0 && (
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                          <p className="text-xs text-muted-foreground">Click to add to description:</p>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            setShowSuggestions(false);
+                                            setDescriptionSuggestions([]);
+                                          }}
+                                          className="h-6 px-2 text-xs"
+                                        >
+                                          Clear
+                                        </Button>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md bg-muted/50">
+                                          {descriptionSuggestions.map((suggestion, index) => (
+                                            <Button
+                                              key={index}
+                                              type="button"
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => handleInsertSuggestionToEdit(suggestion)}
+                                              className="cursor-pointer text-xs h-auto py-1 px-2 whitespace-normal text-left"
+                                            >
+                                              {suggestion}
+                                            </Button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <DialogFooter>
+                                  <Button
+                                    variant="outline"
+                                    onClick={handleCancelEdit}
+                                    className="cursor-pointer"
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    onClick={handleUpdateEvent}
+                                    disabled={isEditingEvent || !editEventName.trim()}
+                                    className="cursor-pointer"
+                                  >
+                                    {isEditingEvent ? (
+                                      <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Updating...
+                                      </>
+                                    ) : (
+                                      'Update Event'
+                                    )}
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+
+                            {/* Delete Event Button */}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  className="cursor-pointer shrink-0"
+                                  disabled={isDeletingEvent}
+                                >
+                                  {isDeletingEvent ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Event?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete "{selectedEvent?.name}"? This will permanently delete the event and all its messages. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteEventConfirm(selectedEventId)}
+                                    className="bg-destructive text-white hover:bg-destructive/90 cursor-pointer"
+                                  >
+                                    Delete Event
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
                         )}
-                      </Button>
+                      </div>
+
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Share this link to receive anonymous messages for this event
-                    </p>
                   </div>
-                )}
 
-                <Separator />
+                  {selectedEventId && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Shareable Event Link</label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="text"
+                          value={isMounted ? profileUrl : ''}
+                          disabled
+                          className="flex-1"
+                          suppressHydrationWarning
+                        />
+                        <Button
+                          onClick={copyToClipboard}
+                          variant="outline"
+                          className="cursor-pointer"
+                        >
+                          {isCopied ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Share this link to receive anonymous messages for this event
+                      </p>
+                    </div>
+                  )}
 
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <label className="text-sm font-medium">Accept Messages</label>
+                      <p className="text-xs text-muted-foreground">
+                        Allow people to send you anonymous messages
+                      </p>
+                    </div>
+                    <Switch
+                      {...register('acceptMessages')}
+                      checked={acceptMessages}
+                      onCheckedChange={handleAcceptMessagesChange}
+                      disabled={isSwitching}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {selectedEventId && (
+            <Card>
+              <CardHeader>
                 <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <label className="text-sm font-medium">Accept Messages</label>
-                    <p className="text-xs text-muted-foreground">
-                      Allow people to send you anonymous messages
-                    </p>
+                  <div>
+                    <CardTitle>Messages</CardTitle>
+                    <CardDescription>
+                      {events.find(e => e._id.toString() === selectedEventId)?.name} - {messages.length} message(s)
+                    </CardDescription>
                   </div>
-                  <Switch
-                    {...register('acceptMessages')}
-                    checked={acceptMessages}
-                    onCheckedChange={handleAcceptMessagesChange}
-                    disabled={isSwitching}
+                  <Button
+                    variant="outline"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      fetchMessages(true, selectedEventId);
+                    }}
+                    disabled={isLoading}
                     className="cursor-pointer"
-                  />
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCcw className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {messages.length > 0 ? (
+                    messages.map((message) => (
+                      <MessageCard
+                        key={message._id?.toString()}
+                        message={message}
+                        onMessageDelete={handleDeleteMessage}
+                        eventId={selectedEventId}
+                      />
+                    ))
+                  ) : (
+                    <div className="col-span-2 text-center py-12">
+                      <p className="text-muted-foreground">
+                        No messages yet. Share your event link to start receiving messages!
+                      </p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           )}
+
+          {events.length === 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <LayoutDashboardIcon className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Events Yet</h3>
+                <p className="text-muted-foreground text-center mb-4">
+                  Create your first event to start receiving anonymous messages
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
-
-        {selectedEventId && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Messages</CardTitle>
-                  <CardDescription>
-                    {events.find(e => e._id.toString() === selectedEventId)?.name} - {messages.length} message(s)
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    fetchMessages(true, selectedEventId);
-                  }}
-                  disabled={isLoading}
-                  className="cursor-pointer"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCcw className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {messages.length > 0 ? (
-                  messages.map((message) => (
-                    <MessageCard
-                      key={message._id?.toString()}
-                      message={message}
-                      onMessageDelete={handleDeleteMessage}
-                      eventId={selectedEventId}
-                    />
-                  ))
-                ) : (
-                  <div className="col-span-2 text-center py-12">
-                    <p className="text-muted-foreground">
-                      No messages yet. Share your event link to start receiving messages!
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {events.length === 0 && (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <LayoutDashboardIcon className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Events Yet</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                Create your first event to start receiving anonymous messages
-              </p>
-            </CardContent>
-          </Card>
-        )}
       </div>
-    </div>
     </TooltipProvider>
   );
 };
