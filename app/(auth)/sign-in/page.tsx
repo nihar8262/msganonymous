@@ -18,13 +18,14 @@ import { useRouter } from 'next/navigation';
 import { toast } from "sonner"
 import { signInSchema } from '@/schema/signInSchema';
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Eye, EyeClosed, EyeIcon, Loader2 } from 'lucide-react';
 
 export default function SignInForm() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isGithubLoading, setIsGithubLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
@@ -97,12 +98,15 @@ export default function SignInForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Password</FormLabel>
-                  <Input type="password" {...field} />
+                  <Input type={showPassword ? "text" : "password"} {...field} className='relative '/>
+                  {
+                    showPassword ? <Eye  onClick={() => setShowPassword(!showPassword)} className='absolute right-10 bottom-80 cursor-pointer' /> : <EyeClosed  onClick={() => setShowPassword(!showPassword)} className='absolute right-10 bottom-80 cursor-pointer'/>
+                  }
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button className="w-full" type="submit" disabled={isLoading}>
+            <Button className="w-full cursor-pointer" type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

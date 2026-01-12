@@ -9,7 +9,7 @@ import { acceptMessageSchema } from "@/schema/acceptingMessageSchema";
 import { ApiResponse } from "@/types/ApiResponse";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosError } from "axios";
-import { Loader2, RefreshCcw, LayoutDashboardIcon, Plus, Copy, Check, Trash2, Edit2Icon, Sparkles } from "lucide-react";
+import { Loader2, RefreshCcw, LayoutDashboardIcon, Plus, Copy, Check, Trash2, Edit2Icon, Sparkles, EyeOff, Eye, QrCode } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -78,10 +78,43 @@ const Dashboard = () => {
   const [aiRemaining, setAIRemaining] = useState<number>(5);
   const [fingerprint, setFingerprint] = useState('');
   const [isCheckingLimit, setIsCheckingLimit] = useState(true);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [qrCodeGenerated, setQRCodeGenerated] = useState(false);
+  const [isGeneratingQRCode, setIsGeneratingQRCode] = useState(false);
+  const [qrCodeSrc, setQRCodeSrc] = useState('');
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const handleGenerateQRCode = async () => {
+    if (qrCodeGenerated) {
+      // If already generated, just toggle visibility
+      setShowQRCode(!showQRCode);
+      return;
+    }
+
+    // Generate QR code for the first time
+    setIsGeneratingQRCode(true);
+    try {
+      const qrUrl = `/api/qr-generator?text=${encodeURIComponent(profileUrl)}`;
+      setQRCodeSrc(qrUrl);
+      setQRCodeGenerated(true);
+      setShowQRCode(true);
+      toast.success('QR Code generated successfully!');
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      toast.error('Failed to generate QR code');
+    } finally {
+      setIsGeneratingQRCode(false);
+    }
+  };
+
+  useEffect(() => {
+    setQRCodeGenerated(false);
+    setShowQRCode(false);
+    setQRCodeSrc('');
+  }, [selectedEventId]);
 
   // Fetch fingerprint on mount
   useEffect(() => {
@@ -544,8 +577,22 @@ const Dashboard = () => {
                     {/* Suggestion Pills */}
                     {showSuggestions && descriptionSuggestions.length > 0 && (
                       <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground">Click to add to description:</p>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">Click to add to description:</p>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setShowSuggestions(false);
+                              setDescriptionSuggestions([]);
+                            }}
+                            className="h-6 px-2 text-xs"
+                          >
+                            Clear
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md bg-muted/50">
                           {descriptionSuggestions.map((suggestion, index) => (
                             <Button
                               key={index}
@@ -724,18 +771,18 @@ const Dashboard = () => {
                                       <div className="space-y-2">
                                         <div className="flex items-center justify-between">
                                           <p className="text-xs text-muted-foreground">Click to add to description:</p>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => {
-                                            setShowSuggestions(false);
-                                            setDescriptionSuggestions([]);
-                                          }}
-                                          className="h-6 px-2 text-xs"
-                                        >
-                                          Clear
-                                        </Button>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                              setShowSuggestions(false);
+                                              setDescriptionSuggestions([]);
+                                            }}
+                                            className="h-6 px-2 text-xs"
+                                          >
+                                            Clear
+                                          </Button>
                                         </div>
                                         <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md bg-muted/50">
                                           {descriptionSuggestions.map((suggestion, index) => (
@@ -825,7 +872,7 @@ const Dashboard = () => {
                   {selectedEventId && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Shareable Event Link</label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <Input
                           type="text"
                           value={isMounted ? profileUrl : ''}
@@ -833,10 +880,11 @@ const Dashboard = () => {
                           className="flex-1"
                           suppressHydrationWarning
                         />
+                        <div className="flex gap-2 w-full sm:w-auto">
                         <Button
                           onClick={copyToClipboard}
                           variant="outline"
-                          className="cursor-pointer"
+                          className="cursor-pointer w-[15vw] sm:w-auto"
                         >
                           {isCopied ? (
                             <Check className="h-4 w-4" />
@@ -844,10 +892,70 @@ const Dashboard = () => {
                             <Copy className="h-4 w-4" />
                           )}
                         </Button>
+                        <Button
+                          onClick={handleGenerateQRCode}
+                          variant="outline"
+                          className="cursor-pointer w-[63vw] sm:w-auto"
+                          disabled={isGeneratingQRCode}
+                        >
+                          {isGeneratingQRCode ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Generating...
+                            </>
+                          ) : qrCodeGenerated ? (
+                            showQRCode ? (
+                              <>
+                                <EyeOff className="h-4 w-4 mr-2" />
+                                Hide QR Code
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Show QR Code
+                              </>
+                            )
+                          ) : (
+                            <>
+                              <QrCode className="h-4 w-4 mr-2" />
+                              Generate QR Code
+                            </>
+                          )}
+                        </Button>
+                        </div>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Share this link to receive anonymous messages for this event
                       </p>
+                      {showQRCode && qrCodeGenerated && (
+                        <div className="mt-4 flex justify-center p-4 border rounded-lg bg-muted/30">
+                          <div className="text-center space-y-3">
+                            <img
+                              src={qrCodeSrc}
+                              alt="QR code for event link"
+                              className="mx-auto border-4 border-white rounded-lg shadow-lg"
+                              id="qr-code-image"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Scan this QR code to send anonymous messages
+                            </p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = qrCodeSrc;
+                                link.download = `${selectedEvent?.name || 'event'}-qr-code.png`;
+                                link.click();
+                                toast.success('QR Code downloaded!');
+                              }}
+                              className="cursor-pointer"
+                            >
+                              Download QR Code
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 

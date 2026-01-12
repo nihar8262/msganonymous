@@ -19,13 +19,14 @@ import { useRouter } from "next/navigation";
 import { signUpSchema } from "@/schema/signUpSchema";
 import axios, {AxiosError} from "axios";
 import { ApiResponse } from "@/types/ApiResponse";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeClosed, Loader2 } from "lucide-react";
 
 export default function SignUpForm() {
   const [username, setUsername] = useState('');
   const [usernameMessage, setUsernameMessage] = useState('');
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const debounced = useDebounceCallback(setUsername, 300);
 
   const router = useRouter();
@@ -94,7 +95,7 @@ export default function SignUpForm() {
           <p className="mb-4">Sign up to start your anonymous adventure</p>
         </div>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-7">
             <FormField
               name="username"
               control={form.control}
@@ -143,7 +144,10 @@ export default function SignUpForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Password</FormLabel>
-                  <Input type="password" {...field} name="password" />
+                  <Input type={showPassword ? "text" : "password"} {...field} name="password"  className="relative"/>
+                  {
+                    showPassword ? <Eye  onClick={() => setShowPassword(!showPassword)} className='absolute right-10 bottom-40 cursor-pointer' /> : <EyeClosed  onClick={() => setShowPassword(!showPassword)} className='absolute right-10 bottom-40 cursor-pointer'/>
+                  }
                   <FormMessage />
                 </FormItem>
               )}

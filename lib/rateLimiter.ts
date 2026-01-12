@@ -100,33 +100,67 @@ export async function incrementAuthenticatedUsage(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  await UserModel.findByIdAndUpdate(
-    userId,
-    {
-      $inc: {
-        'aiUsage.$[elem].count': 1,
-      },
-    },
-    {
-      arrayFilters: [{ 'elem.date': today }],
-    }
-  );
+  try {
+    // Step 1: Ensure aiUsage field exists
+    await UserModel.updateOne(
+      { _id: userId, aiUsage: { $exists: false } },
+      { $set: { aiUsage: [] } }
+    );
 
-  // If no entry exists for today, create one
-  await UserModel.findByIdAndUpdate(
-    userId,
-    {
-      $push: {
+    // Step 2: Try to increment existing entry for today
+    const result = await UserModel.findOneAndUpdate(
+      {
+        _id: userId,
         aiUsage: {
-          $each: [{ date: today, count: 1 }],
-          $position: 0,
-        },
+          $elemMatch: {
+            date: {
+              $gte: today,
+              $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+            }
+          }
+        }
       },
-    },
-    {
-      upsert: false,
+      {
+        $inc: { 'aiUsage.$.count': 1 }
+      },
+      { new: true }
+    );
+
+    // Step 3: If no existing entry, add new one
+    if (!result) {
+      await UserModel.updateOne(
+        { _id: userId },
+        {
+          $addToSet: {
+            aiUsage: {
+              date: today,
+              count: 1
+            }
+          }
+        }
+      );
     }
-  );
+
+    // Step 4: Clean up old entries (keep last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+    await UserModel.updateOne(
+      { _id: userId },
+      {
+        $pull: {
+          aiUsage: {
+            date: { $lt: thirtyDaysAgo }
+          }
+        }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error incrementing authenticated usage:', error);
+    throw error;
+  }
 }
 
 export async function incrementAnonymousUsage(
