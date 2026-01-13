@@ -72,7 +72,10 @@ export interface User extends Document {
   providerId?: string; // OAuth provider's user ID
   image?: string; // Profile image from OAuth
   events: mongoose.Types.ObjectId[];
-  aiUsage: AIUsage[]; 
+  aiUsage: {
+    date: Date | null;
+    count: number;
+  };
 }
 
 const UserSchema: Schema<User> = new Schema({
@@ -111,18 +114,17 @@ const UserSchema: Schema<User> = new Schema({
     type: Schema.Types.ObjectId,
     ref: "Event",
   }],
-  aiUsage: [
-    {
-      date: {
-        type: Date,
-        required: true,
-      },
-      count: {
-        type: Number,
-        default: 0,
-      },
+  aiUsage: {
+    date: {
+      type: Date,
+      default: null,
+      required: false,  // ← Explicitly set to false
     },
-  ],
+    count: {
+      type: Number,
+      default: 0,
+    },
+  },
 });
 
 export const userModel =

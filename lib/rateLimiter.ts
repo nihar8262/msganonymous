@@ -31,14 +31,22 @@ export async function checkAuthenticatedUserLimit(
       };
     }
 
-    // Find today's usage
-    const todayUsage = user.aiUsage?.find((usage) => {
-      const usageDate = new Date(usage.date);
+    // Check if aiUsage exists and if it's today
+    const usageDate = user.aiUsage?.date ? new Date(user.aiUsage.date) : null;
+    if (usageDate) {
       usageDate.setHours(0, 0, 0, 0);
-      return usageDate.getTime() === today.getTime();
-    });
+    }
 
-    const currentCount = todayUsage?.count || 0;
+    let currentCount = 0;
+
+    // If usage is from today, use current count
+    if (usageDate && usageDate.getTime() === today.getTime()) {
+      currentCount = user.aiUsage.count || 0;
+    }
+
+    // If usage is from a previous day, it's reset (count = 0)
+    // We'll update it on next increment
+
     const remaining = Math.max(0, DAILY_LIMIT - currentCount);
 
     return {
@@ -101,62 +109,30 @@ export async function incrementAuthenticatedUsage(
   today.setHours(0, 0, 0, 0);
 
   try {
-    // Step 1: Ensure aiUsage field exists
-    await UserModel.updateOne(
-      { _id: userId, aiUsage: { $exists: false } },
-      { $set: { aiUsage: [] } }
-    );
-
-    // Step 2: Try to increment existing entry for today
-    const result = await UserModel.findOneAndUpdate(
-      {
-        _id: userId,
-        aiUsage: {
-          $elemMatch: {
-            date: {
-              $gte: today,
-              $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
-            }
-          }
-        }
-      },
-      {
-        $inc: { 'aiUsage.$.count': 1 }
-      },
-      { new: true }
-    );
-
-    // Step 3: If no existing entry, add new one
-    if (!result) {
-      await UserModel.updateOne(
-        { _id: userId },
-        {
-          $addToSet: {
-            aiUsage: {
-              date: today,
-              count: 1
-            }
-          }
-        }
-      );
+    const user = await UserModel.findById(userId);
+    
+    if (!user) {
+      throw new Error('User not found');
     }
 
-    // Step 4: Clean up old entries (keep last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    thirtyDaysAgo.setHours(0, 0, 0, 0);
+    // Check if aiUsage is from today
+    const usageDate = user.aiUsage?.date ? new Date(user.aiUsage.date) : null;
+    if (usageDate) {
+      usageDate.setHours(0, 0, 0, 0);
+    }
 
-    await UserModel.updateOne(
-      { _id: userId },
-      {
-        $pull: {
-          aiUsage: {
-            date: { $lt: thirtyDaysAgo }
-          }
-        }
-      }
-    );
+    if (usageDate && usageDate.getTime() === today.getTime()) {
+      // Same day - increment count
+      user.aiUsage.count += 1;
+    } else {
+      // New day or no usage - reset to 1
+      user.aiUsage = {
+        date: today,
+        count: 1,
+      };
+    }
 
+    await user.save();
   } catch (error) {
     console.error('Error incrementing authenticated usage:', error);
     throw error;

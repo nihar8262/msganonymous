@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/tooltip"
 import { getFingerprint } from '@/lib/fingerprint';
 import Link from "next/link"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const specialChar = '||';
 
@@ -117,7 +118,6 @@ const UsernamePage = () => {
       const response = await axios.post('/api/check-ai-limit', {
         fingerprint: fp || fingerprint,
       });
-      console.log('AI Limit response:', response.data); // Debug log
       setAIRemaining(response.data.remaining ?? 5); // Use nullish coalescing
     } catch (error) {
       console.error('Error checking AI limit:', error);
@@ -128,7 +128,6 @@ const UsernamePage = () => {
   };
 
   const handleSuggestMessages = async (useAI: boolean = false) => {
-    console.log('Before setState - useAI:', useAI, 'isGenerating:', isGenerating, 'aiIsGenerating:', aiIsGenerating);
 
     if (useAI) {
       setAIIsGenerating(true);
@@ -147,11 +146,9 @@ const UsernamePage = () => {
       const suggestions = response.data.message;
 
       if (response.data.remaining !== undefined && response.data.remaining !== null) {
-        console.log('Updating aiRemaining to:', response.data.remaining); // Debug log
         setAIRemaining(response.data.remaining);
       }
 
-      console.log('Suggestions received:', suggestions);
 
       if (typeof suggestions === 'string') {
         setSuggestedMessages(parseStringMessages(suggestions));
@@ -170,20 +167,16 @@ const UsernamePage = () => {
       console.error('Error generating suggestions:', error);
       toast.error('Failed to generate suggestions. Please try again.');
     } finally {
-      console.log('In finally - useAI:', useAI);
       if (useAI) {
         setAIIsGenerating(false);
-        console.log('Set aiIsGenerating to false');
       } else {
         setIsGenerating(false);
-        console.log('Set isGenerating to false');
       }
     }
   };
 
   // Add debug logging to see state changes
   useEffect(() => {
-    console.log('State update - isGenerating:', isGenerating, 'aiIsGenerating:', aiIsGenerating, 'aiRemaining:', aiRemaining, 'type:', typeof aiRemaining);
   }, [isGenerating, aiIsGenerating, aiRemaining]);
 
   const handleMessageClick = (message: string) => {
@@ -217,8 +210,32 @@ const UsernamePage = () => {
 
   if (isLoadingEvent) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex flex-col justify-center w-full max-w-5xl  mx-auto gap-10 items-center min-h-screen">
+        <div>
+          <div className="flex flex-col space-y-3">
+              <Skeleton className="h-[15vh] w-[50vw] rounded-xl" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[250px]" />
+                <Skeleton className="h-4 w-[200px]" />
+              </div>
+            </div>
+        </div>
+          <div className="flex items-center  gap-20 justify-center">
+            <div className="flex flex-col space-y-3">
+              <Skeleton className="h-[35vh] w-[25vw] rounded-xl" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[250px]" />
+                <Skeleton className="h-4 w-[200px]" />
+              </div>
+            </div>
+            <div className="flex flex-col space-y-3">
+              <Skeleton className="h-[35vh] w-[25vw] rounded-xl" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[250px]" />
+                <Skeleton className="h-4 w-[200px]" />
+              </div>
+            </div>
+          </div>
       </div>
     );
   }
@@ -243,169 +260,169 @@ const UsernamePage = () => {
 
   return (
     <TooltipProvider>
-    <div className="flex justify-center items-center min-h-screen p-4">
-      <div className="w-full max-w-5xl space-y-6">
-        {/* Header */}
-        <div className="text-center bg-white dark:bg-neutral-800 rounded-lg border shadow-sm p-6">
-          <h1 className="text-3xl font-bold tracking-tight mb-2">
-            Send Anonymous Message
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-            to @{params.username}
-          </p>
-          {event && (
-            <div className="mt-3 inline-block bg-blue-100 dark:bg-blue-900 px-4 py-2 rounded-full">
-              <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">
-                Event: {event.name}
-              </p>
-              {event.description && (
-                <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
-                  {event.description}
+      <div className="flex justify-center items-center min-h-screen p-4">
+        <div className="w-full max-w-5xl space-y-6">
+          {/* Header */}
+          <div className="text-center bg-white dark:bg-neutral-800 rounded-lg border shadow-sm p-6">
+            <h1 className="text-3xl font-bold tracking-tight mb-2">
+              Send Anonymous Message
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+              to @{params.username}
+            </p>
+            {event && (
+              <div className="mt-3 inline-block bg-blue-100 dark:bg-blue-900 px-4 py-2 rounded-full">
+                <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">
+                  Event: {event.name}
                 </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="w-full flex flex-col lg:flex-row justify-between gap-5">
-          {/* Message Form */}
-          <Card className="w-full">
-            <CardContent className="pt-6">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="content"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Your Message</FormLabel>
-                        <FormControl>
-                          <textarea
-                            placeholder="Write your anonymous message here..."
-                            className="resize-none w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-900 dark:border-neutral-700"
-                            rows={6}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    type="submit"
-                    disabled={isLoading || !event}
-                    className="w-full cursor-pointer"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      'Send Message'
-                    )}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          {/* Suggested Messages */}
-          <Card className="w-full">
-            <CardHeader>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  onClick={() => handleSuggestMessages(false)}
-                  disabled={isGenerating}
-                  variant="outline"
-                  className="cursor-pointer flex-1"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    'Quick Suggestions'
-                  )}
-                </Button>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="inline-block">
-                    <Button
-                      type="button"
-                      onClick={() => handleSuggestMessages(true)}
-                      disabled={aiIsGenerating || (aiRemaining !== null && aiRemaining <= 0) || isCheckingLimit}
-                      variant="default"
-                      className="cursor-pointer flex-1"
-                    >
-                      {aiIsGenerating ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Generating...
-                        </>
-                      ) : isCheckingLimit ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Checking...
-                        </>
-                      ) : (
-                        `✨ AI Suggestions ${aiRemaining !== null ? `(${aiRemaining})` : ''}`
-                      )}
-                    </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      {aiRemaining !== null
-                        ? `${aiRemaining} AI suggestions left for today`
-                        : 'Checking AI limit...'}
-                    </p>
-                    {aiRemaining === 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">Resets tomorrow</p>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Click on any message below to use it
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {suggestedMessages.length > 0 ? (
-                  suggestedMessages.map((message, index) => (
-                    <Card
-                      key={index}
-                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors border-2 hover:border-blue-500"
-                      onClick={() => handleMessageClick(message)}
-                    >
-                      <CardContent className="p-4">
-                        <p className="text-sm">{message}</p>
-                      </CardContent>
-                    </Card>
-                  ))
-                ) : (
-                  <p className="text-center text-gray-500 dark:text-gray-400 py-4">
-                    Click "Suggest Messages" to generate ideas
+                {event.description && (
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                    {event.description}
                   </p>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+          </div>
 
-        <Separator className="my-6" />
-        <div className="text-center">
-          <div className="mb-4 dark:text-white">Get Your Message Board</div>
-          <Link href={'/sign-up'}>
-            <Button className="cursor-pointer">Create Your Account</Button>
-          </Link>
+          <div className="w-full flex flex-col lg:flex-row justify-between gap-5">
+            {/* Message Form */}
+            <Card className="w-full">
+              <CardContent className="pt-6">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="content"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Your Message</FormLabel>
+                          <FormControl>
+                            <textarea
+                              placeholder="Write your anonymous message here..."
+                              className="resize-none w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-900 dark:border-neutral-700"
+                              rows={6}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="submit"
+                      disabled={isLoading || !event}
+                      className="w-full cursor-pointer"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        'Send Message'
+                      )}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+
+            {/* Suggested Messages */}
+            <Card className="w-full">
+              <CardHeader>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => handleSuggestMessages(false)}
+                    disabled={isGenerating}
+                    variant="outline"
+                    className="cursor-pointer flex-1"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      'Quick Suggestions'
+                    )}
+                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-block">
+                        <Button
+                          type="button"
+                          onClick={() => handleSuggestMessages(true)}
+                          disabled={aiIsGenerating || (aiRemaining !== null && aiRemaining <= 0) || isCheckingLimit}
+                          variant="default"
+                          className="cursor-pointer flex-1"
+                        >
+                          {aiIsGenerating ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Generating...
+                            </>
+                          ) : isCheckingLimit ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Checking...
+                            </>
+                          ) : (
+                            `✨ AI Suggestions ${aiRemaining !== null ? `(${aiRemaining})` : ''}`
+                          )}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {aiRemaining !== null
+                          ? `${aiRemaining} AI suggestions left for today`
+                          : 'Checking AI limit...'}
+                      </p>
+                      {aiRemaining === 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">Resets tomorrow</p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  Click on any message below to use it
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {suggestedMessages.length > 0 ? (
+                    suggestedMessages.map((message, index) => (
+                      <Card
+                        key={index}
+                        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors border-2 hover:border-blue-500"
+                        onClick={() => handleMessageClick(message)}
+                      >
+                        <CardContent className="p-4">
+                          <p className="text-sm">{message}</p>
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <p className="text-center text-gray-500 dark:text-gray-400 py-4">
+                      Click "Suggest Messages" to generate ideas
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Separator className="my-6" />
+          <div className="text-center">
+            <div className="mb-4 dark:text-white">Get Your Message Board</div>
+            <Link href={'/sign-up'}>
+              <Button className="cursor-pointer">Create Your Account</Button>
+            </Link>
+          </div>
         </div>
       </div>
-    </div>
     </TooltipProvider>
   );
 };

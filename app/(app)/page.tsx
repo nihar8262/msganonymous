@@ -26,7 +26,6 @@ export default function Home() {
       const response = await fetch('/api/ai-message');
       const data = await response.json();
       setMessage(`Google API Response: ${JSON.stringify(data)}`);
-      console.log('Google API Response:', data);
     }catch(error){
       setMessage(`Error calling Google API: ${error}`);
     }finally{

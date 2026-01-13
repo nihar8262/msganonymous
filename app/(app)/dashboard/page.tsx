@@ -18,6 +18,7 @@ import { User } from 'next-auth';
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { getFingerprint } from '@/lib/fingerprint';
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Select,
   SelectContent,
@@ -137,7 +138,6 @@ const Dashboard = () => {
       const response = await axios.post('/api/check-ai-limit', {
         fingerprint: fp || fingerprint,
       });
-      console.log('AI Limit response:', response.data); // Debug log
       setAIRemaining(response.data.remaining ?? 5); // Use nullish coalescing
     } catch (error) {
       console.error('Error checking AI limit:', error);
@@ -161,7 +161,6 @@ const Dashboard = () => {
 
       // Update remaining count from response
       if (response.data.remaining !== undefined && response.data.remaining !== null) {
-        console.log('Updating aiRemaining to:', response.data.remaining); // Debug log
         setAIRemaining(response.data.remaining);
       }
 
@@ -463,9 +462,21 @@ const Dashboard = () => {
 
   if (!isMounted || !session || !session.user) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <h1>Please Login to see your Dashboard</h1>
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex flex-col items-center pt-30 gap-20 justify-center">
+        <div className="flex flex-col space-y-3">
+          <Skeleton className="h-[30vh] w-[50vw] rounded-xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-[250px]" />
+            <Skeleton className="h-4 w-[200px]" />
+          </div>
+        </div>
+        <div className="flex flex-col space-y-3">
+          <Skeleton className="h-[30vh] w-[50vw] rounded-xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-[250px]" />
+            <Skeleton className="h-4 w-[200px]" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -881,47 +892,47 @@ const Dashboard = () => {
                           suppressHydrationWarning
                         />
                         <div className="flex gap-2 w-full sm:w-auto">
-                        <Button
-                          onClick={copyToClipboard}
-                          variant="outline"
-                          className="cursor-pointer w-[15vw] sm:w-auto"
-                        >
-                          {isCopied ? (
-                            <Check className="h-4 w-4" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          onClick={handleGenerateQRCode}
-                          variant="outline"
-                          className="cursor-pointer w-[63vw] sm:w-auto"
-                          disabled={isGeneratingQRCode}
-                        >
-                          {isGeneratingQRCode ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              Generating...
-                            </>
-                          ) : qrCodeGenerated ? (
-                            showQRCode ? (
+                          <Button
+                            onClick={copyToClipboard}
+                            variant="outline"
+                            className="cursor-pointer w-[15vw] sm:w-auto"
+                          >
+                            {isCopied ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            onClick={handleGenerateQRCode}
+                            variant="outline"
+                            className="cursor-pointer w-[63vw] sm:w-auto"
+                            disabled={isGeneratingQRCode}
+                          >
+                            {isGeneratingQRCode ? (
                               <>
-                                <EyeOff className="h-4 w-4 mr-2" />
-                                Hide QR Code
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Generating...
                               </>
+                            ) : qrCodeGenerated ? (
+                              showQRCode ? (
+                                <>
+                                  <EyeOff className="h-4 w-4 mr-2" />
+                                  Hide QR Code
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Show QR Code
+                                </>
+                              )
                             ) : (
                               <>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Show QR Code
+                                <QrCode className="h-4 w-4 mr-2" />
+                                Generate QR Code
                               </>
-                            )
-                          ) : (
-                            <>
-                              <QrCode className="h-4 w-4 mr-2" />
-                              Generate QR Code
-                            </>
-                          )}
-                        </Button>
+                            )}
+                          </Button>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground">

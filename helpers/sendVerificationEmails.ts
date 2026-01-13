@@ -7,7 +7,6 @@ export async function sendVerificationEmail(
   email: string,
   verifyCode: string
 ): Promise<ApiResponse> {
-  console.log("RESEND_API_KEY exists:", !!process.env.RESEND_API_KEY);
   try {
     await resend.emails.send({
       from: "onboarding@resend.dev",

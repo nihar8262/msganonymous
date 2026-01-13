@@ -19,7 +19,6 @@ export async function GET(request: Request) {
         }
     
         const userId = new mongoose.Types.ObjectId(user?._id);
-        console.log("Fetching messages for user ID:", userId, "user:", user.username);
 
         try {
             const user = await userModel.aggregate([
@@ -31,7 +30,6 @@ export async function GET(request: Request) {
                     messages: { $push: "$messages" }
                 }},
             ])
-            console.log("Fetched messages:", user);
 
             if(!user || user.length === 0){
                 return Response.json(
