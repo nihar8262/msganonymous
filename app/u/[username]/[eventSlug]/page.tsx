@@ -213,23 +213,23 @@ const UsernamePage = () => {
       <div className="flex flex-col justify-center w-full max-w-5xl  mx-auto gap-10 items-center min-h-screen">
         <div>
           <div className="flex flex-col space-y-3">
-              <Skeleton className="h-[15vh] w-[50vw] rounded-xl" />
+              <Skeleton className="h-[15vh] w-[55vw] md:h-[15vh] md:w-[50vw] rounded-xl" />
               <div className="space-y-2">
                 <Skeleton className="h-4 w-[250px]" />
                 <Skeleton className="h-4 w-[200px]" />
               </div>
             </div>
         </div>
-          <div className="flex items-center  gap-20 justify-center">
+          <div className="flex flex-col md:flex-row items-center  gap-20 justify-center">
             <div className="flex flex-col space-y-3">
-              <Skeleton className="h-[35vh] w-[25vw] rounded-xl" />
+              <Skeleton className="h-[25vh] w-[55vw] md:h-[35vh] md:w-[25vw] rounded-xl" />
               <div className="space-y-2">
                 <Skeleton className="h-4 w-[250px]" />
                 <Skeleton className="h-4 w-[200px]" />
               </div>
             </div>
             <div className="flex flex-col space-y-3">
-              <Skeleton className="h-[35vh] w-[25vw] rounded-xl" />
+              <Skeleton className="h-[25vh] w-[55vw] md:h-[35vh] md:w-[25vw] rounded-xl" />
               <div className="space-y-2">
                 <Skeleton className="h-4 w-[250px]" />
                 <Skeleton className="h-4 w-[200px]" />
