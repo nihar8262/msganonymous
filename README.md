@@ -53,10 +53,10 @@
 ## 📸 Screenshots / GIFs
 
 > _Add your screenshots or GIFs here_
-![Landing Page](./screenshots/landing.png)
-![Sign In Page](./screenshots/signin.png)
-![Sign Up Page](./screenshots/signup.png)
-![Dashboard](./screenshots/dashboard.png)
+![Landing Page](./screenshots/Landing.png)
+![Sign In Page](./screenshots/SignIn.png)
+![Sign Up Page](./screenshots/SignUp.png)
+![Dashboard](./screenshots/Dashboard.png)
 ![Public Event Page](./screenshots/events.png)
 
 ---
