@@ -18,6 +18,9 @@ export interface Event extends Document {
   userId: mongoose.Types.ObjectId; // Reference to User
   createdAt: Date;
   isActive: boolean;
+  responsesLimit?: number;
+  eventEndDate?: Date;
+  eventEndTime?: string;
   messages: mongoose.Types.DocumentArray<Message & Document>; // Embedded messages
 }
 
@@ -48,6 +51,18 @@ const EventSchema: Schema<Event> = new Schema({
   isActive: {
     type: Boolean,
     default: true,
+  },
+  responsesLimit: {
+    type: Number,
+    required: false,
+  },
+  eventEndDate: {
+    type: Date,
+    required: false,
+  },
+  eventEndTime: {
+    type: String,
+    required: false,
   },
   messages: [MessageSchema], // Messages embedded in event
 });

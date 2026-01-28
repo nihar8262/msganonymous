@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react"
 import { MessageCard } from "@/components/MessageCard";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -15,14 +16,26 @@ import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { User } from 'next-auth';
+import * as z from "zod";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { getFingerprint } from '@/lib/fingerprint';
 import { Skeleton } from "@/components/ui/skeleton"
+import { Calendar } from "@/components/ui/calendar"
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { format } from "date-fns"
+import { ChevronDownIcon } from "lucide-react"
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -54,6 +67,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { eventSchema } from "@/schema/eventSchema";
 
 const Dashboard = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -66,12 +80,15 @@ const Dashboard = () => {
   const [profileUrl, setProfileUrl] = useState('');
   const [isMounted, setIsMounted] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
-  const [newEventName, setNewEventName] = useState('');
-  const [newEventDescription, setNewEventDescription] = useState('');
+  // Remove local state for event name/description, use eventForm instead
   const [editEventId, setEditEventId] = useState<string>('');
   const [editEventName, setEditEventName] = useState('');
   const [editEventDescription, setEditEventDescription] = useState('');
+  const [editResponsesLimit, setEditResponsesLimit] = useState<string>('');
+  const [editEventEndDate, setEditEventEndDate] = useState<string>('');
+  const [editEventEndTime, setEditEventEndTime] = useState<string>('');
   const [isCopied, setIsCopied] = useState(false);
+  const [isMessagesLinkCopied, setIsMessagesLinkCopied] = useState(false);
   const [isFetchingSuggestion, setIsFetchingSuggestion] = useState(false);
   const [aiIsGenerating, setAIIsGenerating] = useState(false);
   const [descriptionSuggestions, setDescriptionSuggestions] = useState<string[]>([]);
@@ -83,10 +100,68 @@ const Dashboard = () => {
   const [qrCodeGenerated, setQRCodeGenerated] = useState(false);
   const [isGeneratingQRCode, setIsGeneratingQRCode] = useState(false);
   const [qrCodeSrc, setQRCodeSrc] = useState('');
+  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+  const [isDeletingMessages, setIsDeletingMessages] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
+  const [expiresIn, setExpiresIn] = useState<string>('');
+  const [open, setOpen] = React.useState(false)
+  const [date, setDate] = React.useState<Date | undefined>(undefined)
+  const [selectedResponsesNumber, setSelectedResponsesNumber] = React.useState<string | undefined>(undefined)
+  const [messagesTimeLimit, setMessagesTimeLimit] = React.useState<string | undefined>(undefined)
+  const Responses = [
+    { label: "10", value: "10" },
+    { label: "50", value: "50" },
+    { label: "100", value: "100" },
+    { label: "200", value: "200" },
+    { label: "500", value: "500" },
+  ]
+  const ReceiveMessageTime = [
+    { label: "All ", value: "All" },
+    { label: "15 minutes ago", value: "15 minutes ago" },
+    { label: "30 minutes ago", value: "30 minutes ago" },
+    { label: "1 hour ago", value: "1 hour ago" },
+    { label: "1 Day ago", value: "1 Day ago" },
+    { label: "1 Week ago", value: "1 Week ago" },
+  ]
+
+  const getMessageCutoff = (limit?: string) => {
+    if (!limit || limit === "All") return null;
+    const now = new Date();
+    switch (limit) {
+      case "15 minutes ago":
+        return new Date(now.getTime() - 15 * 60 * 1000);
+      case "30 minutes ago":
+        return new Date(now.getTime() - 30 * 60 * 1000);
+      case "1 hour ago":
+        return new Date(now.getTime() - 60 * 60 * 1000);
+      case "1 Day ago":
+        return new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      case "1 Week ago":
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      default:
+        return null;
+    }
+  };
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const formatDateForInput = (value?: Date | string) => {
+    if (!value) return '';
+    const dateObj = typeof value === 'string' ? new Date(value) : value;
+    if (Number.isNaN(dateObj.getTime())) return '';
+    return dateObj.toISOString().split('T')[0];
+  };
+
+  const eventForm = useForm<z.infer<typeof eventSchema>>({
+    resolver: zodResolver(eventSchema),
+    defaultValues: {
+      name: '',
+      description: ''
+    }
+  });
 
   const handleGenerateQRCode = async () => {
     if (qrCodeGenerated) {
@@ -154,7 +229,7 @@ const Dashboard = () => {
       const response = await axios.post('/api/ai-message', {
         type: 'description',
         useAI: useAI,
-        eventName: newEventName, // Pass the event name being created
+        eventName: eventForm.getValues('name'), // Pass the event name being created
         fingerprint: fingerprint
       });
       const suggestions = response.data.message;
@@ -243,11 +318,11 @@ const Dashboard = () => {
 
   // Add this function to insert suggestion into description
   const handleInsertSuggestion = (suggestion: string) => {
-    const currentDescription = newEventDescription;
+    const currentDescription = eventForm.getValues('description');
     const newDescription = currentDescription
       ? `${currentDescription}\n• ${suggestion}`
       : `• ${suggestion}`;
-    setNewEventDescription(newDescription);
+    eventForm.setValue('description', newDescription);
     toast.success('Suggestion added to description');
   };
 
@@ -263,17 +338,53 @@ const Dashboard = () => {
 
   const handleDeleteMessage = (messageId: string) => {
     setMessages(messages.filter((msg) => msg?._id?.toString() !== messageId));
+    setSelectedMessageIds((prev) => prev.filter((id) => id !== messageId));
+  };
+
+  const handleSelectMessage = (messageId: string, checked: boolean) => {
+    setSelectedMessageIds((prev) =>
+      checked ? Array.from(new Set([...prev, messageId])) : prev.filter((id) => id !== messageId)
+    );
+  };
+
+  const handleSelectAllVisible = () => {
+    const visibleIds = paginatedMessages.map((message) => message._id.toString());
+    setSelectedMessageIds(visibleIds);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedMessageIds([]);
+  };
+
+  const handleDeleteSelectedMessages = async () => {
+    if (!selectedEventId || selectedMessageIds.length === 0) return;
+    setIsDeletingMessages(true);
+    try {
+      for (const messageId of selectedMessageIds) {
+        await axios.delete<ApiResponse>('/api/delete-message', {
+          data: { messageId, eventId: selectedEventId },
+        });
+      }
+      setMessages((prev) => prev.filter((msg) => !selectedMessageIds.includes(msg._id.toString())));
+      setSelectedMessageIds([]);
+      toast.success('Selected messages deleted');
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(axiosError.response?.data.message || 'Failed to delete selected messages');
+    } finally {
+      setIsDeletingMessages(false);
+    }
   };
 
   const { data: session } = useSession();
-  const form = useForm({
+  const acceptMessageForm = useForm({
     resolver: zodResolver(acceptMessageSchema),
     defaultValues: {
       acceptMessages: true
     }
   });
 
-  const { setValue, watch, register } = form;
+  const { setValue, watch, register } = acceptMessageForm;
   const acceptMessages = watch('acceptMessages');
 
   const handleEditEvent = (eventId: string) => {
@@ -282,6 +393,9 @@ const Dashboard = () => {
       setEditEventId(eventId);
       setEditEventName(eventToEdit.name);
       setEditEventDescription(eventToEdit.description || '');
+      setEditResponsesLimit(eventToEdit.responsesLimit ? String(eventToEdit.responsesLimit) : '');
+      setEditEventEndDate(formatDateForInput(eventToEdit.eventEndDate));
+      setEditEventEndTime(eventToEdit.eventEndTime || '');
     }
   };
 
@@ -293,16 +407,30 @@ const Dashboard = () => {
 
     setIsEditingEvent(true);
     try {
-      const response = await axios.put(`/api/update-event/${editEventId}`, {
+      const updatePayload = {
         name: editEventName,
-        description: editEventDescription
-      });
+        description: editEventDescription,
+        responsesLimit: editResponsesLimit ? Number(editResponsesLimit) : undefined,
+        eventEndDate: editEventEndDate || undefined,
+        eventEndTime: editEventEndTime || undefined,
+      };
+
+      const parsed = eventSchema.safeParse(updatePayload);
+      if (!parsed.success) {
+        toast.error(parsed.error.issues[0]?.message || 'Invalid event data');
+        return;
+      }
+
+      const response = await axios.put(`/api/update-event/${editEventId}`, parsed.data);
 
       if (response.data.success) {
         toast.success("Event updated successfully!");
         setEditEventId('');
         setEditEventName('');
         setEditEventDescription('');
+        setEditResponsesLimit('');
+        setEditEventEndDate('');
+        setEditEventEndTime('');
 
         // Refresh events list
         await fetchEvents();
@@ -312,6 +440,7 @@ const Dashboard = () => {
       toast.error(axiosError.response?.data.message || "Failed to update event");
     } finally {
       setIsEditingEvent(false);
+      setShowSuggestions(false);
     }
   };
 
@@ -319,6 +448,9 @@ const Dashboard = () => {
     setEditEventId('');
     setEditEventName('');
     setEditEventDescription('');
+    setEditResponsesLimit('');
+    setEditEventEndDate('');
+    setEditEventEndTime('');
   };
 
   const handleDeleteEventConfirm = async (eventId: string) => {
@@ -360,23 +492,41 @@ const Dashboard = () => {
     }
   }, [selectedEventId]);
 
-  const createEvent = async () => {
-    if (!newEventName.trim()) {
-      toast.error("Please enter an event name");
-      return;
-    }
-
+  const createEvent = async (data: z.infer<typeof eventSchema>) => {
     setIsCreatingEvent(true);
     try {
-      const response = await axios.post('/api/create-event', {
-        name: newEventName,
-        description: newEventDescription
-      });
+      const eventEndDate = date ? date.toISOString().split('T')[0] : undefined;
+      const eventEndTime = (document.getElementById('time-picker-optional') as HTMLInputElement)?.value || undefined;
+      const responsesLimit = selectedResponsesNumber ? parseInt(selectedResponsesNumber) : undefined;
 
+      const createPayload = {
+        name: data.name,
+        description: data.description,
+        eventEndDate,
+        eventEndTime,
+        responsesLimit,
+      };
+
+      const parsed = eventSchema.safeParse(createPayload);
+      if (!parsed.success) {
+        parsed.error.issues.forEach((issue) => {
+          const field = issue.path[0];
+          if (field === 'name' || field === 'description') {
+            eventForm.setError(field as 'name' | 'description', { message: issue.message });
+          } else {
+            toast.error(issue.message);
+          }
+        });
+        return;
+      }
+
+      const response = await axios.post('/api/create-event', parsed.data);
       toast.success("Event created successfully!");
-      setNewEventName('');
-      setNewEventDescription('');
-
+      eventForm.reset();
+      setSelectedResponsesNumber(undefined);
+      setDate(undefined);
+      const timeInput = document.getElementById('time-picker-optional') as HTMLInputElement | null;
+      if (timeInput) timeInput.value = '';
       await fetchEvents();
       setSelectedEventId(response.data.event._id);
     } catch (error) {
@@ -384,6 +534,7 @@ const Dashboard = () => {
       toast.error(axiosError.response?.data.message || "Failed to create event");
     } finally {
       setIsCreatingEvent(false);
+      setShowSuggestions(false);
     }
   };
 
@@ -431,6 +582,16 @@ const Dashboard = () => {
   }, [selectedEventId, fetchMessages]);
 
   useEffect(() => {
+    setMessagesTimeLimit(undefined);
+    setSelectedMessageIds([]);
+    setCurrentPage(1);
+  }, [selectedEventId]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [messagesTimeLimit]);
+
+  useEffect(() => {
     setIsMounted(true);
     if (session?.user && selectedEventId) {
       const { username } = session.user as User;
@@ -460,6 +621,86 @@ const Dashboard = () => {
     setTimeout(() => setIsCopied(false), 2000);
   };
 
+  const copyMessagesLinkToClipboard = () => {
+    const messagesLink = `${profileUrl}/messages`;
+    navigator.clipboard.writeText(messagesLink);
+    setIsMessagesLinkCopied(true);
+    toast.success("Messages link copied to clipboard!");
+    setTimeout(() => setIsMessagesLinkCopied(false), 2000);
+  };
+
+  const username = session?.user?.username ?? '';
+  const selectedEvent = events.find(e => e._id.toString() === selectedEventId);
+  const eventIsActive = selectedEvent?.isActive ?? true;
+  const effectiveAcceptMessages = acceptMessages && eventIsActive;
+  const messageCutoff = getMessageCutoff(messagesTimeLimit);
+  const filteredMessages = messageCutoff
+    ? messages.filter((message) => new Date(message.createdAt) >= messageCutoff)
+    : messages;
+  const totalPages = Math.max(1, Math.ceil(filteredMessages.length / pageSize));
+  const currentPageSafe = Math.min(currentPage, totalPages);
+  const startIndex = (currentPageSafe - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedMessages = filteredMessages.slice(startIndex, endIndex);
+  const allVisibleSelected = paginatedMessages.length > 0 && paginatedMessages.every((message) => selectedMessageIds.includes(message._id.toString()));
+  const endAt = selectedEvent?.eventEndDate
+    ? new Date(selectedEvent.eventEndDate)
+    : null;
+  if (endAt && selectedEvent?.eventEndTime) {
+    const [hours, minutes] = selectedEvent.eventEndTime.split(":").map(Number);
+    if (Number.isFinite(hours) && Number.isFinite(minutes)) {
+      endAt.setHours(hours, minutes, 0, 0);
+    }
+  }
+  const limitReached = !!selectedEvent?.responsesLimit && messages.length >= selectedEvent.responsesLimit;
+  const expired = !!endAt && endAt.getTime() <= Date.now();
+  const statusLabel = limitReached
+    ? "LIMIT REACHED"
+    : expired
+      ? "EXPIRED"
+      : effectiveAcceptMessages
+        ? "OPEN"
+        : "CLOSED";
+
+  useEffect(() => {
+    if (!endAt) {
+      setExpiresIn('');
+      return;
+    }
+
+    const updateCountdown = () => {
+      const now = Date.now();
+      const diff = endAt.getTime() - now;
+      if (diff <= 0) {
+        setExpiresIn('Expired');
+        return;
+      }
+
+      const totalMinutes = Math.floor(diff / 60000);
+      const days = Math.floor(totalMinutes / (60 * 24));
+      const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+      const minutes = totalMinutes % 60;
+
+      const parts = [] as string[];
+      if (days > 0) parts.push(`${days}d`);
+      if (hours > 0 || days > 0) parts.push(`${hours}h`);
+      parts.push(`${minutes}m`);
+
+      setExpiresIn(parts.join(' '));
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 60000);
+    return () => clearInterval(interval);
+  }, [endAt?.getTime()]);
+
+  useEffect(() => {
+    const newTotalPages = Math.max(1, Math.ceil(filteredMessages.length / pageSize));
+    if (currentPage > newTotalPages) {
+      setCurrentPage(newTotalPages);
+    }
+  }, [filteredMessages.length, currentPage, pageSize]);
+
   if (!isMounted || !session || !session.user) {
     return (
       <div className="flex flex-col items-center pt-30 gap-20 justify-center">
@@ -481,13 +722,11 @@ const Dashboard = () => {
     );
   }
 
-  const { username } = session?.user as User;
-  const selectedEvent = events.find(e => e._id.toString() === selectedEventId);
 
   return (
     <TooltipProvider>
       <div className="min-h-screen p-4 md:p-8">
-        <div className="max-w-7xl mx-auto space-y-6 pt-10">
+        <div className="max-w-7xl mx-auto space-y-6 pt-2">
           <div className="space-y-2">
             <h1 className="text-4xl font-bold">Dashboard</h1>
             <p className="text-muted-foreground">Welcome back, {username}!</p>
@@ -506,15 +745,17 @@ const Dashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <form onSubmit={eventForm.handleSubmit(createEvent)} className="space-y-4">
                   <div className="space-y-2">
                     <Input
                       type="text"
                       placeholder="Event Name (e.g., Birthday Party, Anonymous Feedback)"
-                      value={newEventName}
-                      onChange={(e) => setNewEventName(e.target.value)}
+                      {...eventForm.register('name')}
                       className="w-full"
                     />
+                    {eventForm.formState.errors.name && (
+                      <p className="text-red-500 text-xs mt-1">{eventForm.formState.errors.name.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -548,7 +789,12 @@ const Dashboard = () => {
                               <Button
                                 type="button"
                                 onClick={() => handleGetDescriptionSuggestions(true)}
-                                disabled={aiIsGenerating || isCheckingLimit || (aiRemaining !== null && aiRemaining <= 0)}
+                                disabled={
+                                  aiIsGenerating ||
+                                  isCheckingLimit ||
+                                  (aiRemaining !== null && aiRemaining <= 0) ||
+                                  (eventForm.watch('name')?.trim().length ?? 0) < 3
+                                }
                                 variant="default"
                                 className="cursor-pointer flex-1"
                               >
@@ -578,12 +824,14 @@ const Dashboard = () => {
                     </div>
 
                     <Textarea
-                      placeholder="Add questions or prompts to guide message senders..."
-                      value={newEventDescription}
-                      onChange={(e) => setNewEventDescription(e.target.value)}
+                      placeholder="Add your event description less than 300 characters long..."
+                      {...eventForm.register('description')}
                       className="w-full resize-none"
                       rows={4}
                     />
+                    {eventForm.formState.errors.description && (
+                      <p className="text-red-500 text-xs mt-1">{eventForm.formState.errors.description.message}</p>
+                    )}
 
                     {/* Suggestion Pills */}
                     {showSuggestions && descriptionSuggestions.length > 0 && (
@@ -621,9 +869,77 @@ const Dashboard = () => {
                     )}
                   </div>
 
+                  <div className="flex flex-col sm:flex-row justify-between gap-5 items-center">
+                    <div className=" flex flex-col items-center border text-center p-3 h-[14rem] w-full rounded-md gap-2">
+                      <h3 className="text-sm">Responses Limit</h3>
+                      <Separator />
+                      <Select
+                        value={selectedResponsesNumber}
+                        onValueChange={setSelectedResponsesNumber}
+                      >
+                        <SelectTrigger className="w-full mt-10 max-w-64">
+                          <SelectValue placeholder="Select number of responses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Responses</SelectLabel>
+                            {Responses.map((item) => (
+                              <SelectItem key={item.value} value={item.value}>
+                                {item.label}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex flex-col border text-center p-3 w-full rounded-md gap-2">
+                      <h3 className="text-sm">Accepting Responses Timing</h3>
+                      <Separator />
+                      <FieldGroup className="mx-auto max-w-xs flex-col">
+                        <Field>
+                          <FieldLabel htmlFor="date-picker-optional">End Date</FieldLabel>
+                          <Popover open={open} onOpenChange={setOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                id="date-picker-optional"
+                                className="w-32 justify-between font-normal"
+                              >
+                                {date ? format(date, "PPP") : "Select date"}
+                                <ChevronDownIcon data-icon="inline-end" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={date}
+                                captionLayout="dropdown"
+                                defaultMonth={date}
+                                onSelect={(date) => {
+                                  setDate(date)
+                                  setOpen(false)
+                                }}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </Field>
+                        <Field className="w-32">
+                          <FieldLabel htmlFor="time-picker-optional">End Time</FieldLabel>
+                          <Input
+                            type="time"
+                            id="time-picker-optional"
+                            step="1"
+                            defaultValue="10:30:00"
+                            className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                          />
+                        </Field>
+                      </FieldGroup>
+                    </div>
+                  </div>
+
                   <Button
-                    onClick={createEvent}
-                    disabled={isCreatingEvent || !newEventName.trim()}
+                    type="submit"
+                    disabled={isCreatingEvent}
                     className="w-full md:w-auto cursor-pointer"
                   >
                     {isCreatingEvent ? (
@@ -638,19 +954,64 @@ const Dashboard = () => {
                       </>
                     )}
                   </Button>
-                </div>
+                </form>
               </CardContent>
             </Card>
 
             {events.length > 0 && (
               <Card className=" md:flex-1">
                 <CardHeader>
-                  <CardTitle>Event Settings</CardTitle>
-                  <CardDescription>
-                    Select an event to view its messages and get shareable link
-                  </CardDescription>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <CardTitle>Event Settings</CardTitle>
+                      <CardDescription>
+                        Select an event to view its messages and get shareable link
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Expires in</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border bg-slate-50 text-slate-700 border-slate-200">
+                        {expiresIn || 'Not set'}
+                      </span>
+                    </div>
+                  </div>
+                  <Separator />
+
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  <div className="flex items-center justify-between border border-gray-200 p-2 rounded-md">
+                    <div className="space-y-0.5">
+                      <label className="text-sm font-medium">Accept Messages</label>
+                      <p className="text-xs text-muted-foreground">
+                        {effectiveAcceptMessages
+                          ? "Your event is currently open to receive anonymous messages."
+                          : "Your event is currently closed to receiving messages."}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border ${
+                          statusLabel === "OPEN"
+                            ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                            : statusLabel === "CLOSED"
+                              ? "bg-slate-100 text-slate-700 border-slate-200"
+                              : statusLabel === "LIMIT REACHED"
+                                ? "bg-amber-100 text-amber-700 border-amber-200"
+                                : "bg-rose-100 text-rose-700 border-rose-200"
+                        }`}
+                      >
+                        {statusLabel}
+                      </span>
+                      <Switch
+                        {...register('acceptMessages')}
+                        checked={effectiveAcceptMessages}
+                        onCheckedChange={handleAcceptMessagesChange}
+                        disabled={isSwitching || !eventIsActive || limitReached || expired}
+                        className="cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Select Event</label>
                     <div className="flex flex-col sm:flex-row  gap-2">
@@ -682,14 +1043,19 @@ const Dashboard = () => {
                               if (!open) handleCancelEdit();
                             }}>
                               <DialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="cursor-pointer shrink-0"
-                                  onClick={() => handleEditEvent(selectedEventId)}
-                                >
-                                  <Edit2Icon className="h-4 w-4" />
-                                </Button>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="cursor-pointer shrink-0"
+                                      onClick={() => handleEditEvent(selectedEventId)}
+                                    >
+                                      <Edit2Icon className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Edit selected Event</TooltipContent>
+                                </Tooltip>
                               </DialogTrigger>
                               <DialogContent className="sm:max-w-[500px]">
                                 <DialogHeader>
@@ -740,7 +1106,7 @@ const Dashboard = () => {
                                               <Button
                                                 type="button"
                                                 onClick={() => handleGetDescriptionSuggestionsForEdit(true)}
-                                                disabled={aiIsGenerating || (aiRemaining !== null && aiRemaining <= 0) || isCheckingLimit}
+                                                disabled={aiIsGenerating || (aiRemaining !== null && aiRemaining <= 0) || isCheckingLimit }
                                                 variant="default"
                                                 className="cursor-pointer flex-1"
                                               >
@@ -812,6 +1178,40 @@ const Dashboard = () => {
                                       </div>
                                     )}
                                   </div>
+
+                                  <div className="space-y-2">
+                                    <label className="text-sm font-medium">Responses Limit (optional)</label>
+                                    <Input
+                                      type="number"
+                                      min={1}
+                                      max={10000}
+                                      placeholder="e.g., 100"
+                                      value={editResponsesLimit}
+                                      onChange={(e) => setEditResponsesLimit(e.target.value)}
+                                      className="w-full"
+                                    />
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                      <label className="text-sm font-medium">End Date (optional)</label>
+                                      <Input
+                                        type="date"
+                                        value={editEventEndDate}
+                                        onChange={(e) => setEditEventEndDate(e.target.value)}
+                                        className="w-full"
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <label className="text-sm font-medium">End Time (optional)</label>
+                                      <Input
+                                        type="time"
+                                        value={editEventEndTime}
+                                        onChange={(e) => setEditEventEndTime(e.target.value)}
+                                        className="w-full"
+                                      />
+                                    </div>
+                                  </div>
                                 </div>
                                 <DialogFooter>
                                   <Button
@@ -841,20 +1241,25 @@ const Dashboard = () => {
 
                             {/* Delete Event Button */}
                             <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="destructive"
-                                  size="icon"
-                                  className="cursor-pointer shrink-0"
-                                  disabled={isDeletingEvent}
-                                >
-                                  {isDeletingEvent ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </AlertDialogTrigger>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="destructive"
+                                      size="icon"
+                                      className="cursor-pointer shrink-0"
+                                      disabled={isDeletingEvent}
+                                    >
+                                      {isDeletingEvent ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>Delete selected Event</TooltipContent>
+                              </Tooltip>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Event?</AlertDialogTitle>
@@ -882,6 +1287,39 @@ const Dashboard = () => {
 
                   {selectedEventId && (
                     <div className="space-y-2">
+                      <label className="text-sm font-medium pt-2">Public Messages Link</label>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Input
+                          type="text"
+                          value={isMounted ? `${profileUrl}/messages` : ''}
+                          disabled
+                          className="flex-1"
+                          suppressHydrationWarning
+                        />
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={copyMessagesLinkToClipboard}
+                                variant="outline"
+                                className="cursor-pointer w-[15vw] sm:w-auto"
+                              >
+                                {isMessagesLinkCopied ? (
+                                  <Check className="h-4 w-4" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {isMessagesLinkCopied ? 'Copied!' : 'Copy public messages link'}
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Share this link to let others view messages for this event
+                      </p>
                       <label className="text-sm font-medium">Shareable Event Link</label>
                       <div className="flex flex-col sm:flex-row gap-2">
                         <Input
@@ -892,17 +1330,24 @@ const Dashboard = () => {
                           suppressHydrationWarning
                         />
                         <div className="flex gap-2 w-full sm:w-auto">
-                          <Button
-                            onClick={copyToClipboard}
-                            variant="outline"
-                            className="cursor-pointer w-[15vw] sm:w-auto"
-                          >
-                            {isCopied ? (
-                              <Check className="h-4 w-4" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={copyToClipboard}
+                                variant="outline"
+                                className="cursor-pointer w-[15vw] sm:w-auto"
+                              >
+                                {isCopied ? (
+                                  <Check className="h-4 w-4" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {isCopied ? 'Copied!' : 'Copy event link to clipboard'}
+                            </TooltipContent>
+                          </Tooltip>
                           <Button
                             onClick={handleGenerateQRCode}
                             variant="outline"
@@ -939,15 +1384,17 @@ const Dashboard = () => {
                         Share this link to receive anonymous messages for this event
                       </p>
                       {showQRCode && qrCodeGenerated && (
-                        <div className="mt-4 flex justify-center p-4 border rounded-lg bg-muted/30">
-                          <div className="text-center space-y-3">
+                        <div className="mt-4 flex justify-center items-center gap-8 p-2 border rounded-lg bg-muted/30">
+                          <div className="">
                             <img
                               src={qrCodeSrc}
                               alt="QR code for event link"
-                              className="mx-auto border-4 border-white rounded-lg shadow-lg"
+                              className="mx-auto w-36 border-4 border-white rounded-lg shadow-lg"
                               id="qr-code-image"
                             />
-                            <p className="text-xs text-muted-foreground">
+                          </div>
+                          <div>
+                            <p className="text-xs pb-2 text-muted-foreground">
                               Scan this QR code to send anonymous messages
                             </p>
                             <Button
@@ -969,37 +1416,19 @@ const Dashboard = () => {
                       )}
                     </div>
                   )}
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <label className="text-sm font-medium">Accept Messages</label>
-                      <p className="text-xs text-muted-foreground">
-                        Allow people to send you anonymous messages
-                      </p>
-                    </div>
-                    <Switch
-                      {...register('acceptMessages')}
-                      checked={acceptMessages}
-                      onCheckedChange={handleAcceptMessagesChange}
-                      disabled={isSwitching}
-                      className="cursor-pointer"
-                    />
-                  </div>
                 </CardContent>
               </Card>
             )}
           </div>
 
           {selectedEventId && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
+            <Card className="border-muted/60 shadow-sm">
+              <CardHeader className="space-y-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <CardTitle>Messages</CardTitle>
                     <CardDescription>
-                      {events.find(e => e._id.toString() === selectedEventId)?.name} - {messages.length} message(s)
+                      {events.find(e => e._id.toString() === selectedEventId)?.name} · {filteredMessages.length} message(s)
                     </CardDescription>
                   </div>
                   <Button
@@ -1009,25 +1438,85 @@ const Dashboard = () => {
                       fetchMessages(true, selectedEventId);
                     }}
                     disabled={isLoading}
-                    className="cursor-pointer"
+                    className="cursor-pointer w-full sm:w-auto"
                   >
                     {isLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <RefreshCcw className="h-4 w-4" />
                     )}
+                    <span className="ml-2 hidden sm:inline">Refresh</span>
                   </Button>
+                </div>
+
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <Select
+                      value={messagesTimeLimit}
+                      onValueChange={setMessagesTimeLimit}
+                    >
+                      <SelectTrigger className="w-full sm:w-56">
+                        <SelectValue placeholder="Filter by time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Filter Time</SelectLabel>
+                          {ReceiveMessageTime.map((item) => (
+                            <SelectItem key={item.value} value={item.value}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      onClick={allVisibleSelected ? handleClearSelection : handleSelectAllVisible}
+                      className="cursor-pointer"
+                      disabled={filteredMessages.length === 0}
+                    >
+                      {allVisibleSelected ? 'Clear selection' : 'Select all'}
+                    </Button>
+                  </div>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        className="cursor-pointer w-full sm:w-auto"
+                        disabled={selectedMessageIds.length === 0 || isDeletingMessages}
+                      >
+                        {isDeletingMessages ? 'Deleting...' : `Delete selected (${selectedMessageIds.length})`}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete selected messages?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete the selected messages. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteSelectedMessages} className="cursor-pointer">
+                          Continue
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {messages.length > 0 ? (
-                    messages.map((message) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {paginatedMessages.length > 0 ? (
+                    paginatedMessages.map((message) => (
                       <MessageCard
                         key={message._id?.toString()}
                         message={message}
                         onMessageDelete={handleDeleteMessage}
                         eventId={selectedEventId}
+                        isSelected={selectedMessageIds.includes(message._id.toString())}
+                        onSelectChange={handleSelectMessage}
                       />
                     ))
                   ) : (
@@ -1037,6 +1526,32 @@ const Dashboard = () => {
                       </p>
                     </div>
                   )}
+                </div>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6">
+                  <p className="text-xs text-muted-foreground">
+                    Showing {paginatedMessages.length} of {filteredMessages.length} messages
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPageSafe <= 1}
+                      className="cursor-pointer"
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      Page {currentPageSafe} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPageSafe >= totalPages}
+                      className="cursor-pointer"
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

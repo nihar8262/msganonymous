@@ -3,6 +3,7 @@ import UserModel from '@/model/User';
 import AnonymousUsageModel from '@/model/AnonymousUsage';
 
 const DAILY_LIMIT = 5;
+const ANONYMOUS_DAILY_LIMIT = 2;
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -18,7 +19,7 @@ export async function checkAuthenticatedUserLimit(
   await dbConnect();
 
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setUTCHours(0, 0, 0, 0);
 
   try {
     const user = await UserModel.findById(userId);
@@ -34,7 +35,7 @@ export async function checkAuthenticatedUserLimit(
     // Check if aiUsage exists and if it's today
     const usageDate = user.aiUsage?.date ? new Date(user.aiUsage.date) : null;
     if (usageDate) {
-      usageDate.setHours(0, 0, 0, 0);
+      usageDate.setUTCHours(0, 0, 0, 0);
     }
 
     let currentCount = 0;
@@ -67,24 +68,26 @@ export async function checkAuthenticatedUserLimit(
 
 // For anonymous users (IP-based)
 export async function checkAnonymousUserLimit(
-  identifier: string
+  identifier: string,
+  scope: string = 'ai'
 ): Promise<RateLimitResult> {
   await dbConnect();
 
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setUTCHours(0, 0, 0, 0);
 
   try {
     const usage = await AnonymousUsageModel.findOne({
       identifier,
       date: today,
+      scope,
     });
 
     const currentCount = usage?.count || 0;
-    const remaining = Math.max(0, DAILY_LIMIT - currentCount);
+    const remaining = Math.max(0, ANONYMOUS_DAILY_LIMIT - currentCount);
 
     return {
-      allowed: currentCount < DAILY_LIMIT,
+      allowed: currentCount < ANONYMOUS_DAILY_LIMIT,
       remaining,
       resetAt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
       isAuthenticated: false,
@@ -106,7 +109,7 @@ export async function incrementAuthenticatedUsage(
   await dbConnect();
 
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setUTCHours(0, 0, 0, 0);
 
   try {
     const user = await UserModel.findById(userId);
@@ -118,7 +121,7 @@ export async function incrementAuthenticatedUsage(
     // Check if aiUsage is from today
     const usageDate = user.aiUsage?.date ? new Date(user.aiUsage.date) : null;
     if (usageDate) {
-      usageDate.setHours(0, 0, 0, 0);
+      usageDate.setUTCHours(0, 0, 0, 0);
     }
 
     if (usageDate && usageDate.getTime() === today.getTime()) {
@@ -140,7 +143,8 @@ export async function incrementAuthenticatedUsage(
 }
 
 export async function incrementAnonymousUsage(
-  identifier: string
+  identifier: string,
+  scope: string = 'ai'
 ): Promise<void> {
   await dbConnect();
 
@@ -151,6 +155,7 @@ export async function incrementAnonymousUsage(
     {
       identifier,
       date: today,
+      scope,
     },
     {
       $inc: { count: 1 },

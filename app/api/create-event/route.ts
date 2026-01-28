@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name, description } = await request.json();
+    const { name, description, responsesLimit, eventEndDate, eventEndTime } = await request.json();
 
     if (!name || name.trim() === "") {
       return Response.json(
@@ -53,6 +53,9 @@ export async function POST(request: Request) {
       userId: user._id,
       messages: [],
       isActive: true,
+      responsesLimit: responsesLimit ?? undefined,
+      eventEndDate: eventEndDate ? new Date(eventEndDate) : undefined,
+      eventEndTime: eventEndTime ?? undefined,
     });
 
     // Add event reference to user

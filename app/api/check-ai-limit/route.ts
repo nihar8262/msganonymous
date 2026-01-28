@@ -9,18 +9,18 @@ import {
 
 export async function POST(request: Request) {
   try {
-    const { fingerprint } = await request.json();
+    const { fingerprint, forceAnonymous } = await request.json();
     
     const session = await getServerSession(authOptions);
     let rateLimitResult;
 
-    if (session?.user) {
+    if (!forceAnonymous && session?.user) {
       const userId = (session.user as any)._id;
       rateLimitResult = await checkAuthenticatedUserLimit(userId);
     } else {
       const clientIP = getClientIP(request);
       const identifier = fingerprint || clientIP;
-      rateLimitResult = await checkAnonymousUserLimit(identifier);
+      rateLimitResult = await checkAnonymousUserLimit(identifier, 'ai');
     }
 
     return NextResponse.json({

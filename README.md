@@ -7,20 +7,20 @@
 
 ## 📝 Project Overview
 
-**MSGAnonymous** allows users to create events and receive anonymous messages from anyone. It features user authentication, event management, AI-powered message suggestions, and robust rate limiting to prevent spam. The project is designed for privacy, security, and ease of use.
+**MSGAnonymous**(also referred to as “True Feedback”) allows users to create events and receive anonymous messages from anyone. It features user authentication, event management, AI-powered message suggestions, and robust rate limiting to prevent spam. The project is designed for privacy, security, and ease of use.
 
 ---
 
 ## 🚀 Features
 
-- User authentication (sign up, sign in, email verification)
-- Create, update, and delete events
-- Public event pages for anonymous message submission
-- AI-generated message suggestions
-- Rate limiting and anti-abuse protections
-- QR code generator for event sharing
-- Responsive UI with modern design
-- Admin dashboard for managing messages and events
+- User authentication with email verification and OAuth
+- Authenticated user dashboard for managing events and received messages
+- Event lifecycle management (create, update, delete) with strict access control
+- Public event pages supporting anonymous message submissions
+- AI-generated message suggestions with daily usage limits (5/day)
+- Rate limiting and anti-abuse protections tested against rapid repeat submissions
+- QR code generation for instant event sharing
+- Responsive dashboard for managing events and messages
 
 ---
 
@@ -31,11 +31,14 @@
 - **Authentication:** NextAuth.js
 - **Email:** Resend API
 - **AI:** OpenAI API (for message suggestions)
-- **Other:** Zod (validation), Rate Limiter, Fingerprinting
+- **Other:** Zod (schema validation), custom rate-limiting middleware, request fingerprinting
 
 ---
 
 ## 🏗️ Architecture Diagram
+
+The application uses server-side rendering for authenticated pages and serverless API routes for event and message operations, ensuring secure access control and scalable request handling.
+
 
 ```
 ┌────────────┐     ┌──────────────┐     ┌─────────────┐
@@ -84,6 +87,14 @@
 
 ---
 
+## 🔑 Key Engineering Highlights
+
+- Enforced event state validation on both frontend and backend to prevent submissions to closed or deleted events.
+- Implemented confirmation flows and cascading deletes to avoid orphaned data.
+- Designed the system to gracefully handle stale or invalid public links.
+- Structured codebase with clear separation of API routes, UI components, and utility logic.
+
+---
 ## 💡 What I Learned / Tradeoffs
 
 - **Authentication:** NextAuth.js made it easy to implement secure authentication, but customizing flows (like email verification) required extra work.

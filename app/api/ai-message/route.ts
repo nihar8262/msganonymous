@@ -101,6 +101,7 @@ export async function POST(request: Request) {
     eventName = body.eventName ?? "";
     const useAI = body.useAI ?? false;
     const fingerprint = body.fingerprint || '';
+    const forceAnonymous = body.forceAnonymous ?? false;
 
     // Validate type
     if (!["description", "feedback"].includes(type)) {
@@ -133,7 +134,7 @@ export async function POST(request: Request) {
 let rateLimitResult;
 let userId: string | null = null;
 
-if (session?.user) {
+  if (!forceAnonymous && session?.user) {
   // Authenticated user
   userId = (session.user as any)._id;
   
@@ -163,7 +164,7 @@ if (session?.user) {
     );
   }
 
-  rateLimitResult = await checkAnonymousUserLimit(identifier);
+  rateLimitResult = await checkAnonymousUserLimit(identifier, 'ai');
 }
 
     // Check if rate limit exceeded
@@ -220,7 +221,7 @@ if (session?.user) {
     } else {
       const clientIP = getClientIP(request);
       const identifier = fingerprint || clientIP;
-      await incrementAnonymousUsage(identifier);
+      await incrementAnonymousUsage(identifier, 'ai');
     }
 
     return NextResponse.json({

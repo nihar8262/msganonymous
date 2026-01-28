@@ -38,6 +38,10 @@ interface Event {
   slug: string;
   description?: string;
   isActive: boolean;
+  responsesLimit?: number;
+  eventEndDate?: string;
+  eventEndTime?: string;
+  messagesCount?: number;
 }
 
 const UsernamePage = () => {
@@ -49,9 +53,13 @@ const UsernamePage = () => {
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoadingEvent, setIsLoadingEvent] = useState(true);
   const [userExists, setUserExists] = useState(true);
-  const [aiRemaining, setAIRemaining] = useState<number>(5);
+  const [aiRemaining, setAIRemaining] = useState<number>(2);
   const [fingerprint, setFingerprint] = useState('');
   const [isCheckingLimit, setIsCheckingLimit] = useState(true);
+  const [expiresIn, setExpiresIn] = useState<string>('');
+  const [submittedToday, setSubmittedToday] = useState(false);
+  const [submissionMessage, setSubmissionMessage] = useState('');
+  const [isCheckingMessageLimit, setIsCheckingMessageLimit] = useState(false);
 
   const form = useForm<z.infer<typeof messageSchema>>({
     resolver: zodResolver(messageSchema),
@@ -112,16 +120,93 @@ const UsernamePage = () => {
     initFingerprint();
   }, []);
 
+  useEffect(() => {
+    const checkMessageLimit = async () => {
+      if (!event?._id) return;
+      setIsCheckingMessageLimit(true);
+      try {
+        const response = await axios.post('/api/check-message-limit', {
+          fingerprint: fingerprint,
+          eventId: event._id,
+        });
+
+        if (response.data?.allowed === false) {
+          setSubmittedToday(true);
+          setSubmissionMessage('You can only send one message per day for this event. Try again in 24 hours.');
+        }
+      } catch (error) {
+        console.error('Error checking message limit:', error);
+      } finally {
+        setIsCheckingMessageLimit(false);
+      }
+    };
+
+    checkMessageLimit();
+  }, [event?._id, fingerprint]);
+
+  const computeEndAt = (eventData?: Event | null) => {
+    if (!eventData?.eventEndDate && !eventData?.eventEndTime) return null;
+    const baseDate = eventData?.eventEndDate ? new Date(eventData.eventEndDate) : new Date();
+    if (Number.isNaN(baseDate.getTime())) return null;
+    if (eventData?.eventEndTime) {
+      const [hours, minutes] = eventData.eventEndTime.split(':').map(Number);
+      if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+      const combined = new Date(baseDate);
+      combined.setHours(hours, minutes, 0, 0);
+      return combined;
+    }
+    const endOfDay = new Date(baseDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    return endOfDay;
+  };
+
+  const endAt = computeEndAt(event);
+  const limitReached = !!event?.responsesLimit && (event?.messagesCount ?? 0) >= event.responsesLimit;
+  const expired = !!endAt && endAt.getTime() <= Date.now();
+  const canSendMessages = !limitReached && !expired && event?.isActive && !submittedToday;
+
+  useEffect(() => {
+    if (!endAt) {
+      setExpiresIn('');
+      return;
+    }
+
+    const updateCountdown = () => {
+      const diff = endAt.getTime() - Date.now();
+      if (diff <= 0) {
+        setExpiresIn('Expired');
+        return;
+      }
+
+      const totalMinutes = Math.floor(diff / 60000);
+      const days = Math.floor(totalMinutes / (60 * 24));
+      const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+      const minutes = totalMinutes % 60;
+
+      const parts = [] as string[];
+      if (days > 0) parts.push(`${days}d`);
+      if (hours > 0 || days > 0) parts.push(`${hours}h`);
+      parts.push(`${minutes}m`);
+
+      setExpiresIn(parts.join(' '));
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 60000);
+    return () => clearInterval(interval);
+  }, [endAt?.getTime()]);
+
   const checkAILimit = async (fp?: string) => {
     setIsCheckingLimit(true);
     try {
       const response = await axios.post('/api/check-ai-limit', {
         fingerprint: fp || fingerprint,
+        forceAnonymous: true,
       });
-      setAIRemaining(response.data.remaining ?? 5); // Use nullish coalescing
+      setAIRemaining(response.data.remaining ?? 2); // Use nullish coalescing
     } catch (error) {
       console.error('Error checking AI limit:', error);
-      setAIRemaining(5); // Fallback to 5 on error
+      setAIRemaining(2); // Fallback to 2 on error
     } finally {
       setIsCheckingLimit(false);
     }
@@ -140,7 +225,8 @@ const UsernamePage = () => {
         type: 'feedback',
         useAI: useAI,
         eventName: event?.name || '',
-        fingerprint: fingerprint
+        fingerprint: fingerprint,
+        forceAnonymous: true,
       });
 
       const suggestions = response.data.message;
@@ -195,14 +281,22 @@ const UsernamePage = () => {
       const response = await axios.post<ApiResponse>('/api/send-message', {
         username: params.username,
         content: data.content,
-        eventId: event._id
+        eventId: event._id,
+        fingerprint: fingerprint
       });
       toast.success(response.data.message);
       form.reset();
+      setSubmittedToday(true);
+      setSubmissionMessage('Response submitted. You can send another message after 24 hours.');
     } catch (error) {
       console.error('Error sending message:', error);
       const axiosError = error as AxiosError<ApiResponse>;
-      toast.error(axiosError.response?.data.message ?? "Unable to send message. Please try again.");
+      const errorMessage = axiosError.response?.data.message ?? "Unable to send message. Please try again.";
+      if (axiosError.response?.status === 429) {
+        setSubmittedToday(true);
+        setSubmissionMessage(errorMessage);
+      }
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -282,137 +376,161 @@ const UsernamePage = () => {
                 )}
               </div>
             )}
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
+              <span className="px-2 py-0.5 rounded-full border bg-slate-50 text-slate-700 border-slate-200">
+                {expiresIn || 'No expiry set'}
+              </span>
+              <span className={`px-2 py-0.5 rounded-full border ${expired ? 'bg-rose-100 text-rose-700 border-rose-200' : 'bg-emerald-100 text-emerald-700 border-emerald-200'}`}>
+                {expired ? 'Expired' : 'Active'}
+              </span>
+            </div>
           </div>
 
-          <div className="w-full flex flex-col lg:flex-row justify-between gap-5">
-            {/* Message Form */}
+          {submittedToday ? (
             <Card className="w-full">
               <CardContent className="pt-6">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="content"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Your Message</FormLabel>
-                          <FormControl>
-                            <textarea
-                              placeholder="Write your anonymous message here..."
-                              className="resize-none w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-900 dark:border-neutral-700"
-                              rows={6}
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                <div className="text-sm text-amber-700 bg-amber-100 border border-amber-200 rounded-md p-4 text-center">
+                  {submissionMessage || 'You can only send one message per day for this event. Try again in 24 hours.'}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="w-full flex flex-col lg:flex-row justify-between gap-5">
+              {/* Message Form */}
+              <Card className="w-full">
+                <CardContent className="pt-6">
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="content"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Your Message</FormLabel>
+                            <FormControl>
+                              <textarea
+                                placeholder="Write your anonymous message here..."
+                                className="resize-none w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-900 dark:border-neutral-700"
+                                rows={6}
+                                {...field}
+                                disabled={!canSendMessages}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      {!submittedToday && isCheckingMessageLimit && (
+                        <div className="text-xs text-muted-foreground">
+                          Checking message limit...
+                        </div>
                       )}
-                    />
+                      <Button
+                        type="submit"
+                        disabled={isLoading || !event || !canSendMessages}
+                        className="w-full cursor-pointer"
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          canSendMessages ? 'Send Message' : 'Event Closed'
+                        )}
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+
+              {/* Suggested Messages */}
+              <Card className="w-full">
+                <CardHeader>
+                  <div className="flex gap-2">
                     <Button
-                      type="submit"
-                      disabled={isLoading || !event}
-                      className="w-full cursor-pointer"
+                      type="button"
+                      onClick={() => handleSuggestMessages(false)}
+                      disabled={isGenerating}
+                      variant="outline"
+                      className="cursor-pointer flex-1"
                     >
-                      {isLoading ? (
+                      {isGenerating ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Sending...
+                          Generating...
                         </>
                       ) : (
-                        'Send Message'
+                        'Quick Suggestions'
                       )}
                     </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-block">
+                          <Button
+                            type="button"
+                            onClick={() => handleSuggestMessages(true)}
+                            disabled={aiIsGenerating || (aiRemaining !== null && aiRemaining <= 0) || isCheckingLimit}
+                            variant="default"
+                            className="cursor-pointer flex-1"
+                          >
+                            {aiIsGenerating ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Generating...
+                              </>
+                            ) : isCheckingLimit ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Checking...
+                              </>
+                            ) : (
+                              `✨ AI Suggestions ${aiRemaining !== null ? `(${aiRemaining})` : ''}`
+                            )}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {aiRemaining !== null
+                            ? `${aiRemaining} AI suggestions left for today`
+                            : 'Checking AI limit...'}
+                        </p>
+                        {aiRemaining === 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">Resets tomorrow</p>
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
 
-            {/* Suggested Messages */}
-            <Card className="w-full">
-              <CardHeader>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    onClick={() => handleSuggestMessages(false)}
-                    disabled={isGenerating}
-                    variant="outline"
-                    className="cursor-pointer flex-1"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      'Quick Suggestions'
-                    )}
-                  </Button>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="inline-block">
-                        <Button
-                          type="button"
-                          onClick={() => handleSuggestMessages(true)}
-                          disabled={aiIsGenerating || (aiRemaining !== null && aiRemaining <= 0) || isCheckingLimit}
-                          variant="default"
-                          className="cursor-pointer flex-1"
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    Click on any message below to use it
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {suggestedMessages.length > 0 ? (
+                      suggestedMessages.map((message, index) => (
+                        <Card
+                          key={index}
+                          className="cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors border-2 hover:border-blue-500"
+                          onClick={() => handleMessageClick(message)}
                         >
-                          {aiIsGenerating ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Generating...
-                            </>
-                          ) : isCheckingLimit ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Checking...
-                            </>
-                          ) : (
-                            `✨ AI Suggestions ${aiRemaining !== null ? `(${aiRemaining})` : ''}`
-                          )}
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        {aiRemaining !== null
-                          ? `${aiRemaining} AI suggestions left for today`
-                          : 'Checking AI limit...'}
+                          <CardContent className="p-4">
+                            <p className="text-sm">{message}</p>
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      <p className="text-center text-gray-500 dark:text-gray-400 py-4">
+                        Click "Suggest Messages" to generate ideas
                       </p>
-                      {aiRemaining === 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">Resets tomorrow</p>
-                      )}
-                    </TooltipContent>
-                  </Tooltip>
-
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  Click on any message below to use it
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {suggestedMessages.length > 0 ? (
-                    suggestedMessages.map((message, index) => (
-                      <Card
-                        key={index}
-                        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors border-2 hover:border-blue-500"
-                        onClick={() => handleMessageClick(message)}
-                      >
-                        <CardContent className="p-4">
-                          <p className="text-sm">{message}</p>
-                        </CardContent>
-                      </Card>
-                    ))
-                  ) : (
-                    <p className="text-center text-gray-500 dark:text-gray-400 py-4">
-                      Click "Suggest Messages" to generate ideas
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           <Separator className="my-6" />
           <div className="text-center">

@@ -22,7 +22,7 @@ export async function PUT(
   const { eventId } = await params;
 
   try {
-    const { name, description } = await request.json();
+    const { name, description, eventEndDate, eventEndTime, responsesLimit } = await request.json();
 
     if (!name || name.trim() === "") {
       return Response.json(
@@ -61,6 +61,9 @@ export async function PUT(
         name,
         slug,
         description: description || "",
+        responsesLimit: responsesLimit ?? undefined,
+        eventEndDate: eventEndDate ? new Date(eventEndDate) : undefined,
+        eventEndTime: eventEndTime ?? undefined,
       },
       { new: true } // Return the updated document
     );
@@ -70,6 +73,37 @@ export async function PUT(
         { success: false, message: "Event not found or unauthorized" },
         { status: 404 }
       );
+    }
+
+    const getEventEndAt = (eventEndDate?: Date, eventEndTime?: string) => {
+      if (!eventEndDate && !eventEndTime) return null;
+
+      const baseDate = eventEndDate ? new Date(eventEndDate) : new Date();
+      if (Number.isNaN(baseDate.getTime())) return null;
+
+      if (eventEndTime) {
+        const [hours, minutes] = eventEndTime.split(":").map(Number);
+        if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+        const combined = new Date(baseDate);
+        combined.setHours(hours, minutes, 0, 0);
+        return combined;
+      }
+
+      const endOfDay = new Date(baseDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      return endOfDay;
+    };
+
+    const endAt = getEventEndAt(updatedEvent.eventEndDate, updatedEvent.eventEndTime);
+    const limitReached = updatedEvent.responsesLimit
+      ? updatedEvent.messages.length >= updatedEvent.responsesLimit
+      : false;
+    const timeExpired = endAt ? endAt.getTime() <= Date.now() : false;
+    const shouldBeActive = !limitReached && !timeExpired;
+
+    if (updatedEvent.isActive !== shouldBeActive) {
+      updatedEvent.isActive = shouldBeActive;
+      await updatedEvent.save();
     }
 
     return Response.json(

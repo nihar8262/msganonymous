@@ -10,7 +10,6 @@ export async function GET(
   const { username, eventSlug } = await params;
 
   try {
-    // Find user first
     const user = await userModel.findOne({ username });
 
     if (!user) {
@@ -20,19 +19,20 @@ export async function GET(
       );
     }
 
-    // Find event by slug and userId
     const event = await EventModel.findOne({
       userId: user._id,
       slug: eventSlug,
-      isActive: true,
-    }).select("-messages"); // Don't send messages in public API
+    }).select("name slug description isActive messages responsesLimit eventEndDate eventEndTime");
 
     if (!event) {
       return Response.json(
-        { success: false, message: "Event not found or inactive" },
+        { success: false, message: "Event not found" },
         { status: 404 }
       );
     }
+
+    const messages = (event.messages || []).
+      sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return Response.json(
       {
@@ -46,15 +46,15 @@ export async function GET(
           responsesLimit: event.responsesLimit,
           eventEndDate: event.eventEndDate,
           eventEndTime: event.eventEndTime,
-          messagesCount: event.messages?.length || 0,
         },
+        messages,
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error fetching event:", error);
+    console.error("Error fetching public messages:", error);
     return Response.json(
-      { success: false, message: "Error fetching event" },
+      { success: false, message: "Error fetching messages" },
       { status: 500 }
     );
   }

@@ -30,9 +30,11 @@ type MessageCardProps = {
   message: Message;
   onMessageDelete: (messageId: string) => void;
   eventId: string | null; // Add eventId prop
+  isSelected?: boolean;
+  onSelectChange?: (messageId: string, checked: boolean) => void;
 }
 
-export function MessageCard({ message, onMessageDelete, eventId }: MessageCardProps) {
+export function MessageCard({ message, onMessageDelete, eventId, isSelected = false, onSelectChange }: MessageCardProps) {
 
   const handleDeleteConfirm = async () => {
     try {
@@ -51,14 +53,27 @@ export function MessageCard({ message, onMessageDelete, eventId }: MessageCardPr
   };
 
   return (
-    <Card className="card-bordered">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>{message.content}</CardTitle>
+    <Card className="border-muted/60 shadow-sm hover:shadow-md transition-shadow">
+      <CardHeader className="space-y-2">
+        <div className="flex justify-between items-start gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            {onSelectChange && (
+              <input
+                type="checkbox"
+                aria-label="Select message"
+                checked={isSelected}
+                onChange={(e) => onSelectChange(message._id.toString(), e.target.checked)}
+                className="mt-1 accent-primary"
+              />
+            )}
+            <CardTitle className="text-base leading-relaxed break-words">
+              {message.content}
+            </CardTitle>
+          </div>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant='destructive' className="cursor-pointer">
-                <X className="w-5 h-5" />
+              <Button variant='destructive' size="icon" className="cursor-pointer">
+                <X className="w-4 h-4" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -78,11 +93,11 @@ export function MessageCard({ message, onMessageDelete, eventId }: MessageCardPr
             </AlertDialogContent>
           </AlertDialog>
         </div>
-        <CardDescription className="text-xs">
+        <CardDescription className="text-xs text-muted-foreground">
           {dayjs(message.createdAt).format('MMM D, YYYY h:mm A')}
         </CardDescription>
       </CardHeader>
-      <CardContent></CardContent>
+      {/* <CardContent className="pt-0" /> */}
     </Card>
   );
 }
