@@ -64,8 +64,10 @@ The application uses server-side rendering for authenticated pages and serverles
 ![Landing Page](./screenshots/Landing.png)
 ![Sign In Page](./screenshots/SignIn.png)
 ![Sign Up Page](./screenshots/SignUp.png)
-![Dashboard](./screenshots/Dashboard.png)
-![Public Event Page](./screenshots/events.png)
+![Dashboard](./screenshots/Dashboard1.png)
+![Dashboard](./screenshots/Dashboard2.png)
+![Public Event Page](./screenshots/Events.png)
+![Public Message Page](./screenshots/Messages.png)
 
 ---
 
