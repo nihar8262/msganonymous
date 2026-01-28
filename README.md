@@ -14,13 +14,18 @@
 ## 🚀 Features
 
 - User authentication with email verification and OAuth
-- Authenticated user dashboard for managing events and received messages
-- Event lifecycle management (create, update, delete) with strict access control
-- Public event pages supporting anonymous message submissions
-- AI-generated message suggestions with daily usage limits (5/day)
-- Rate limiting and anti-abuse protections tested against rapid repeat submissions
+- Authenticated dashboard for managing events and received messages
+- Event lifecycle management (create, update, delete) with access control
+- Public event pages for anonymous message submissions
+- Public read-only messages page for sharing event messages
+- AI-generated message suggestions with daily usage limits
+- Per-event response limits and end date/time controls
+- Auto-closing events on limit reached or expiration
+- One message per day per event per fingerprint/IP (anti-spam)
+- Message filtering by time range and pagination (20 per page)
+- Multi-select message delete actions
 - QR code generation for instant event sharing
-- Responsive dashboard for managing events and messages
+- Responsive dashboard for event and message management
 
 ---
 
@@ -30,7 +35,7 @@
 - **Backend:** Next.js API routes, MongoDB (via Mongoose)
 - **Authentication:** NextAuth.js
 - **Email:** Resend API
-- **AI:** OpenAI API (for message suggestions)
+- **AI:** Google Gemini API (for message suggestions)
 - **Other:** Zod (schema validation), custom rate-limiting middleware, request fingerprinting
 
 ---
@@ -90,8 +95,10 @@ The application uses server-side rendering for authenticated pages and serverles
 ## 🔑 Key Engineering Highlights
 
 - Enforced event state validation on both frontend and backend to prevent submissions to closed or deleted events.
-- Implemented confirmation flows and cascading deletes to avoid orphaned data.
-- Designed the system to gracefully handle stale or invalid public links.
+- Per-event anti-abuse: response limits, expiration checks, and fingerprint/IP daily message caps.
+- Role-based access checks on event mutations (update/delete).
+- Public read-only link for message viewing without authentication.
+- No custom message encryption is implemented in the app layer; transport security relies on HTTPS provided by the deployment platform. Database encryption at rest depends on your MongoDB setup.
 - Structured codebase with clear separation of API routes, UI components, and utility logic.
 
 ---

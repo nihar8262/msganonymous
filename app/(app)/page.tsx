@@ -1,6 +1,6 @@
 'use client';
 
-import { Mail, Shield, Users, Sparkles, MessageSquare, Lock, Zap, CheckCircle2, ArrowRight } from 'lucide-react'; 
+import { Mail, Shield, Users, Sparkles, MessageSquare, Lock, Zap, CheckCircle2, ArrowRight, Share2 } from 'lucide-react'; 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Autoplay from 'embla-carousel-autoplay';
 import messages from '../message.json';
@@ -147,11 +147,11 @@ export default function Home() {
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-4">
                     <Shield className="h-6 w-6 text-white" />
                   </div>
-                  <CardTitle className="text-xl">100% Anonymous</CardTitle>
+                  <CardTitle className="text-xl">Anonymous by Design</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Senders remain completely anonymous. No tracking, no IP logging, no way to identify who sent what.
+                    Messages are submitted without a user account. Access to messages is tied to your dashboard and event links.
                   </p>
                 </CardContent>
               </Card>
@@ -161,11 +161,11 @@ export default function Home() {
                   <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mb-4">
                     <Lock className="h-6 w-6 text-white" />
                   </div>
-                  <CardTitle className="text-xl">Secure & Private</CardTitle>
+                  <CardTitle className="text-xl">Access Control</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Your data is encrypted and secure. Only you can see the messages sent to your events.
+                    Only authenticated owners can manage events. Public links can send messages or view read‑only boards depending on the link type.
                   </p>
                 </CardContent>
               </Card>
@@ -175,11 +175,11 @@ export default function Home() {
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center mb-4">
                     <Zap className="h-6 w-6 text-white" />
                   </div>
-                  <CardTitle className="text-xl">Quick Setup</CardTitle>
+                  <CardTitle className="text-xl">Event Controls</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Create an event in seconds. No complicated setup, no technical knowledge required.
+                    Add response limits and end date/time. Events auto‑close when limits are reached or time expires.
                   </p>
                 </CardContent>
               </Card>
@@ -189,11 +189,25 @@ export default function Home() {
                   <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mb-4">
                     <Sparkles className="h-6 w-6 text-white" />
                   </div>
-                  <CardTitle className="text-xl">Custom Events</CardTitle>
+                  <CardTitle className="text-xl">Public Message Board</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Create unlimited events for different occasions—birthdays, feedback sessions, team reviews, and more.
+                    Share a read‑only link that lets others view messages for a specific event.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mb-4">
+                    <Share2 className="h-6 w-6 text-white" />
+                  </div>
+                  <CardTitle className="text-xl">Easy Sharing</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Generate and copy event links instantly, plus QR codes for quick sharing anywhere.
                   </p>
                 </CardContent>
               </Card>
@@ -207,7 +221,7 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Get smart message suggestions to help both you and your message senders craft meaningful feedback.
+                    AI‑generated message prompts with daily usage limits for fairness.
                   </p>
                 </CardContent>
               </Card>
@@ -217,11 +231,11 @@ export default function Home() {
                   <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center mb-4">
                     <Users className="h-6 w-6 text-white" />
                   </div>
-                  <CardTitle className="text-xl">Easy Sharing</CardTitle>
+                  <CardTitle className="text-xl">Spam Controls</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 dark:text-gray-300">
-                    One click to copy your unique event link and share it anywhere—social media, email, or messaging apps.
+                    One message per day per event using fingerprint/IP checks, plus pagination and bulk delete tools.
                   </p>
                 </CardContent>
               </Card>
@@ -243,7 +257,7 @@ export default function Home() {
 
             <Carousel
               plugins={[Autoplay({ delay: 3000 })]}
-              className="w-full max-w-4xl mx-auto"
+              className="w-full max-w-3xl mx-auto"
             >
               <CarouselContent>
                 {messages.map((message, index) => (
