@@ -940,7 +940,7 @@ const Dashboard = () => {
                   <Button
                     type="submit"
                     disabled={isCreatingEvent}
-                    className="w-full md:w-auto cursor-pointer"
+                    className="w-full md:w-auto mt-12 cursor-pointer"
                   >
                     {isCreatingEvent ? (
                       <>
@@ -1389,7 +1389,7 @@ const Dashboard = () => {
                             <img
                               src={qrCodeSrc}
                               alt="QR code for event link"
-                              className="mx-auto w-36 border-4 border-white rounded-lg shadow-lg"
+                              className="mx-auto w-32 border-4 border-white rounded-lg shadow-lg"
                               id="qr-code-image"
                             />
                           </div>
