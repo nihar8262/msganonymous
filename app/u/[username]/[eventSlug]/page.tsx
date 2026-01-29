@@ -390,7 +390,7 @@ const UsernamePage = () => {
             <Card className="w-full">
               <CardContent className="pt-6">
                 <div className="text-sm text-amber-700 bg-amber-100 border border-amber-200 rounded-md p-4 text-center">
-                  {submissionMessage || 'You can only send one message per day for this event. Try again in 24 hours.'}
+                  {submissionMessage || 'You have submitted your response previously. You can only send one message per day for this event. Try again in 24 hours.'}
                 </div>
               </CardContent>
             </Card>
